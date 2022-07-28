@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "  #",
+        " # ",
+        "s  "
+    ],
+    "key": {
+        "#": {
+            "tag": "forge:gems/diamond"
+        },
+        "s": {
+            "item": "minecraft:stick"
+        }
+    },
+    "result":
+    {
+        "item": "webasemod:diamond_bat",
+        "count": 1
+    }
+}

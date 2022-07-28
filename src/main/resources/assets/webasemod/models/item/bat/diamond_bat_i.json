@@ -1,0 +1,6 @@
+{
+	"parent": "item/handheld",
+	"textures": {
+		"layer0": "webasemod:item/bat/diamond_bat_i"
+	}
+}

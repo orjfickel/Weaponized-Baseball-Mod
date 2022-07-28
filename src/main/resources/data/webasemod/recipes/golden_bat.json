@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "  #",
+        " # ",
+        "s  "
+    ],
+    "key": {
+        "#": {
+            "tag": "forge:ingots/gold"
+        },
+        "s": {
+            "item": "minecraft:stick"
+        }
+    },
+    "result":
+    {
+        "item": "webasemod:golden_bat",
+        "count": 1
+    }
+}

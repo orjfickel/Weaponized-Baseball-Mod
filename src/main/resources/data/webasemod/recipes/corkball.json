@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " # ",
+        "# #",
+        " # "
+    ],
+    "key": {
+        "#": {
+            "item": "webasemod:cork"
+        }
+    },
+    "result": {
+        "item": "webasemod:corkball",
+        "count": 8
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "  #",
+        " # ",
+        "s  "
+    ],
+    "key": {
+        "#": {
+            "tag": "forge:ingots/iron"
+        },
+        "s": {
+            "item": "minecraft:stick"
+        }
+    },
+    "result":
+    {
+        "item": "webasemod:iron_bat",
+        "count": 1
+    }
+}

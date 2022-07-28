@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "  #",
+        " # ",
+        "s  "
+    ],
+    "key": {
+        "#": {
+            "tag": "minecraft:planks"
+        },
+        "s": {
+            "item": "minecraft:stick"
+        }
+    },
+    "result":
+    {
+        "item": "webasemod:wooden_bat",
+        "count": 1
+    }
+}

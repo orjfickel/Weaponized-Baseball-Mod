@@ -1,0 +1,24 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "#S#",
+        "SOS",
+        "#S#"
+    ],
+    "key": {
+        "#": {
+            "tag": "minecraft:wool"
+        },
+        "S": {
+            "tag": "forge:slimeballs"
+        },
+        "O": {
+        	"item": "webasemod:cork"
+        }
+    },
+    "result":
+    {
+        "item": "webasemod:baseball_core",
+        "count": 8
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "  #",
+        " # ",
+        "s  "
+    ],
+    "key": {
+        "#": {
+            "tag": "minecraft:stone_tool_materials"
+        },
+        "s": {
+            "item": "minecraft:stick"
+        }
+    },
+    "result":
+    {
+        "item": "webasemod:stone_bat",
+        "count": 1
+    }
+}

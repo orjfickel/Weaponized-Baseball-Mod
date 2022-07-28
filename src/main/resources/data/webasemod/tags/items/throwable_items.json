@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:turtle_egg",
+    "minecraft:slime_ball",
+    "minecraft:fire_charge",
+    "webasemod:basic_baseball",
+    "webasemod:dirtball",
+    "webasemod:stoneball",
+    "webasemod:corkball",
+    "#minecraft:coals",
+    "#forge:gems",
+    "#forge:nuggets",
+    "#forge:ingots"
+  ]
+}

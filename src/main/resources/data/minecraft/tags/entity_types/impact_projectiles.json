@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "webasemod:throwable_item",
+    "webasemod:small_throwable_item",
+    "webasemod:bouncy_fireball",
+    "webasemod:pickable_snowball",
+    "webasemod:pickable_egg",
+    "webasemod:pickable_ender_pearl",
+    "webasemod:pickable_potion",
+    "webasemod:pickable_experience_bottle"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "##S",
+        "###",
+        "## "
+    ],
+    "key": {
+        "#": {
+            "tag": "forge:leather"
+        },
+        "S": {
+            "tag": "forge:string"
+        }
+    },
+    "result": {
+        "item": "webasemod:catcher_glove",
+        "count": 1
+    }
+}

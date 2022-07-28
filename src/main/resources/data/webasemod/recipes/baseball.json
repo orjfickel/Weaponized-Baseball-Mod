@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        {
+            "item": "webasemod:baseball_core"
+        },
+        {
+            "tag": "forge:string"
+        },
+        {
+            "tag": "forge:leather"
+        }
+    ],
+    "result":
+    {
+        "item": "webasemod:basic_baseball",
+        "count": 2
+    }
+}

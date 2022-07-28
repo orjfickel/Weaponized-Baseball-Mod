@@ -1,0 +1,350 @@
+package blizzardfenix.webasemod.entity;
+
+import org.apache.logging.log4j.Logger;
+
+import blizzardfenix.webasemod.BaseballMod;
+
+import org.apache.logging.log4j.LogManager;
+
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntitySize;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.attributes.Attributes;
+import net.minecraft.entity.passive.BatEntity;
+import net.minecraft.entity.passive.ParrotEntity;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Direction.Axis;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceContext;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.World;
+
+public class BallPhysicsHelper {
+	protected static Logger LOGGER = LogManager.getLogger(BaseballMod.MODID + " BallPhysicsHelper");
+	
+	public BallPhysicsHelper() {
+		
+	}
+
+	/**
+	 * 
+	 * @param entity the colliding entity
+	 * @param centerpos the ball's center position
+	 * @return
+	 */
+	public static Vector3d getEntityCapsulePos(Entity entity, Vector3d centerpos) {
+		Vector3d entitypos = entity.position();
+		float halfwidth = entity.getBbWidth()/2;
+		return new Vector3d(entitypos.x,
+				MathHelper.clamp(centerpos.y, entitypos.y + halfwidth, entitypos.y + entity.getBbHeight() - halfwidth),
+				entitypos.z);
+	}
+	
+	/**
+	 * 
+	 * @param entity the colliding entity
+	 * @param centerpos the ball's center position
+	 * @return
+	 */
+	public static Vector3d getEntityCylinderPos(Entity entity, Vector3d centerpos) {
+		Vector3d entitypos = entity.position();
+		return new Vector3d(entitypos.x,
+				MathHelper.clamp(centerpos.y, entitypos.y, entitypos.y + entity.getBbHeight()),
+				entitypos.z);
+	}
+	
+	public static float estimateEntityMass(Entity target) {
+		float result = target.getBbWidth()*target.getBbWidth()*target.getBbHeight()*7F;
+		if (target instanceof LivingEntity) {
+			result += 5 * ((LivingEntity) target).getAttribute(Attributes.KNOCKBACK_RESISTANCE).getValue();
+			//if (((LivingEntity) target).getAttribute(Attributes.KNOCKBACK_RESISTANCE).getValue() > 0) result = 0.01F;
+			if ((target instanceof BatEntity || target instanceof ParrotEntity) && !target.isOnGround()) {
+				// Small flying mobs can get knocked back a whole lot more
+				result *= 0.5F;
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * Interpolates var down to 0, based on speed, starting when speed is below slowspeed
+	 */
+	public static float interpolateDown(float var, float speed, float slowspeed) {
+		if (speed < slowspeed) {
+			if (speed > 0)
+				return Math.max(var * speed / slowspeed, 0);
+			else
+				return 0;
+		}
+		return var;
+	}
+
+	public static BlockRayTraceResult computeTargetBlock(Axis axis, Vector3d hitvec, Vector3d expmovement, World level, EntitySize size) {
+		BlockPos blockpos;
+		Vector3d blockvec = null;
+		Direction dir = null;
+		double halfheight = size.height/2;
+		double halfwidth = size.width/2;
+		double relativeposx = -1;
+		double relativeposy = -1;
+		double relativeposz = -1;
+		boolean hitexactblockside = false;
+		blockvec = hitvec;
+		relativeposx = hitvec.x - Math.floor(hitvec.x);
+		relativeposy = hitvec.y - Math.floor(hitvec.y);
+		relativeposz = hitvec.z - Math.floor(hitvec.z);
+
+		// Check which direction the block side we hit faces, and calculate whether we hit it exactly at the side like we would if it was a simple square instead of something smaller.
+		if (axis == Axis.X) { 
+			if (expmovement.x > 0) {
+				dir = Direction.WEST;
+				hitexactblockside = Math.abs(relativeposx + halfwidth - 1) < 1E-5F;
+			} else {
+				dir = Direction.EAST;
+				hitexactblockside = Math.abs(relativeposx - halfwidth) < 1E-5F;	
+			}
+		} else if (axis == Axis.Y) {
+			if (expmovement.y > 0) {
+				dir = Direction.DOWN;
+				hitexactblockside = Math.abs(relativeposy + halfheight - 1) < 1E-5F;
+			} else {
+				dir = Direction.UP;
+				hitexactblockside = Math.abs(relativeposy - halfheight) < 1E-5F;
+			}
+		} else if (axis == Axis.Z) {
+
+			if (expmovement.z > 0) {
+				dir = Direction.NORTH;
+				hitexactblockside = Math.abs(relativeposz + halfwidth - 1) < 1E-5F;
+			} else {
+				dir = Direction.SOUTH;
+				hitexactblockside = Math.abs(relativeposz - halfwidth) < 1E-5F;
+			}
+		}
+		
+		if (hitexactblockside) {
+			blockvec = blockvec.subtract(axis == Axis.X ? dir.getStepX() : 0, axis == Axis.Y ? dir.getStepY() : 0, axis == Axis.Z ? dir.getStepZ() : 0);
+
+			// Test whether we hit a block head on.
+			BlockRayTraceResult raytraceresult = level.clip(new RayTraceContext(hitvec, hitvec.add(axis == Axis.X ? expmovement.x : 0, axis == Axis.Y ? expmovement.y : 0, axis == Axis.Z ? expmovement.z : 0), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+			
+			if (raytraceresult.getType() == RayTraceResult.Type.MISS) {
+				// Two booleans for each axis, denoting whether we hit near an edge and whether we hit high (h) or low (l) in the block in the axis direction
+				// Calculate which edges of adjacent blocks we could have hit. (large margin of error because move() will sometimes detect collisions where we shouldn't have hit an edge)
+				boolean xedgeh = axis != Axis.X && 1 - relativeposx - halfwidth <= 0.1D;
+				boolean yedgeh = axis != Axis.Y && 1 - relativeposy - halfheight <= 0.1D;
+				boolean zedgeh = axis != Axis.Z && 1 - relativeposz - halfwidth <= 0.1D;
+				boolean xedgel = axis != Axis.X && relativeposx - halfwidth <= 0.1D; // A block edge is hit at some distance along the x-axis. The ball center is outside of the block that is hit.
+				boolean yedgel = axis != Axis.Y && relativeposy - halfheight <= 0.1D;
+				boolean zedgel = axis != Axis.Z && relativeposz - halfwidth <= 0.1D;
+
+				if (axis == Axis.X) { 
+					HitType hitType = tryOtherEdge(axis, yedgeh, zedgeh, yedgel, zedgel, hitvec, expmovement, level, size);
+					switch (hitType) {
+					case MISS:
+						// Do nothing if only misses
+						if (yedgeh) // edgeh and edgel can't both be true, so we only need to set one as false;
+							yedgeh = false;
+						else
+							yedgel = false;
+						if (zedgeh)
+							zedgeh = false;
+						else {
+							zedgel = false;
+						}
+						break;
+					case EDGE1:
+						// We hit the y edge, so disable the z edge booleans.
+						if (zedgeh)
+							zedgeh = false;
+						else {
+							zedgel = false;
+						}
+						break;
+					case EDGE2:
+						if (yedgeh)
+							yedgeh = false;
+						else
+							yedgel = false;
+						break;
+					case CORNER:
+						// Leave both booleans on
+						break;
+					}
+				}
+				if (axis == Axis.Y) { 
+					HitType hitType = tryOtherEdge(axis, xedgeh, zedgeh, xedgel, zedgel, hitvec, expmovement, level, size);
+					switch (hitType) {
+					case MISS:
+						if (xedgeh)
+							xedgeh = false;
+						else
+							xedgel = false;
+						if (zedgeh)
+							zedgeh = false;
+						else {
+							zedgel = false;
+						}
+						break;
+					case EDGE1:
+						if (zedgeh)
+							zedgeh = false;
+						else {
+							zedgel = false;
+						}
+						break;
+					case EDGE2:
+						if (xedgeh)
+							xedgeh = false;
+						else
+							xedgel = false;
+						break;
+					case CORNER:
+						break;
+					}
+				}
+				if (axis == Axis.Z) { 
+					HitType hitType = tryOtherEdge(axis, xedgeh, yedgeh, xedgel, yedgel, hitvec, expmovement, level, size);
+					switch (hitType) {
+					case MISS:
+						if (xedgeh)
+							xedgeh = false;
+						else
+							xedgel = false;
+						if (yedgeh)
+							yedgeh = false;
+						else {
+							yedgel = false;
+						}
+						break;
+					case EDGE1:
+						if (yedgeh)
+							yedgeh = false;
+						else {
+							yedgel = false;
+						}
+						break;
+					case EDGE2:
+						if (xedgeh)
+							xedgeh = false;
+						else
+							xedgel = false;
+						break;
+					case CORNER:
+						break;
+					}
+				}
+				
+				// Adjust blockpos according which edge(s) we hit.
+				if (xedgeh) {
+					 // Hit just the high x edge
+					blockvec = blockvec.add(1, 0, 0);
+				} else if (xedgel) {
+					 // Hit just the low x edge
+					blockvec = blockvec.subtract(1, 0, 0);
+				}
+				if (yedgeh) {
+					 // Hit just the high y edge
+					blockvec = blockvec.add(0, 1, 0);
+				} else if (yedgel) {
+					 // Hit just the low y edge
+					blockvec = blockvec.subtract(0, 1, 0);
+				}
+				if (zedgeh) {
+					 // Hit just the high z edge
+					blockvec = blockvec.add(0, 0, 1);
+				} else if (zedgel) {
+					 // Hit just the low z edge
+					blockvec = blockvec.subtract(0, 0, 1);
+				}
+				// Hitting neither the z or x edge, means we hit something at the surface of a block, but didn't detect a block with the raytrace
+				// This could happen for example when hitting the top of a glass pane slightly off center.
+			}
+		} else {
+			// Leave blockvec to be equal to origpos
+		}
+		blockpos = new BlockPos(blockvec);
+		
+		return new BlockRayTraceResult(hitvec, dir, blockpos, false);
+	}
+
+	/**
+	 * Checks if a block exists at another edge.
+	 @param axisNormal should be the normal of the block face we hit.
+	 @param axisToTest is what this function tests, plus also the corners between the two axes.
+	 @return Where (and whether) a block has been found.
+	 */
+	public static HitType tryOtherEdge(Axis axisNormal, boolean edgeh1, boolean edgeh2, boolean edgel1, boolean edgel2, 
+			Vector3d hitvec, Vector3d expmovement, World level, EntitySize size) {
+		BlockRayTraceResult raytraceresult = null;
+		double halfheight = size.height/2;
+		double halfwidth = size.width/2;
+		Axis axisToTest = Axis.X;
+		switch (axisNormal) {
+		case X:
+			axisToTest = Axis.Y;
+			break;
+		case Y:
+			axisToTest = Axis.X;
+			break;
+		case Z:
+			axisToTest = Axis.X;
+			break;
+		}
+		
+		Vector3d normalMovement = new Vector3d(	axisNormal == Axis.X ? expmovement.x : 0, 
+												axisNormal == Axis.Y ? expmovement.y : 0, 
+												axisNormal == Axis.Z ? expmovement.z : 0);
+		boolean edge1 = edgeh1 || edgel1;
+		boolean edge2 = edgeh2 || edgel2;
+		Vector3d temppos = hitvec;
+
+		// If we hit an edge, there is a chance we hit either a corner or a regular edge.
+		// Therefore we should first check for regular edges, and then for corners.
+		if (edge1) {
+			temppos = hitvec.add(	axisToTest == Axis.X ? halfwidth * (edgeh1 ? 1 : -1) : 0, 
+									axisToTest == Axis.Y ? halfheight * (edgeh1 ? 1 : -1) : 0, 
+									axisToTest == Axis.Z ? halfwidth * (edgeh1 ? 1 : -1) : 0);
+			raytraceresult = level.clip(new RayTraceContext(temppos, temppos.add(normalMovement), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+		}
+		if (!edge1 || raytraceresult.getType() == RayTraceResult.Type.MISS) {
+			if (edge2) {
+				temppos = hitvec.add(	axisNormal != Axis.X && axisToTest != Axis.X ? halfwidth * (edgeh2 ? 1 : -1) : 0, 
+										axisNormal != Axis.Y && axisToTest != Axis.Y ? halfheight * (edgeh2 ? 1 : -1) : 0, 
+										axisNormal != Axis.Z && axisToTest != Axis.Z ? halfwidth * (edgeh2 ? 1 : -1) : 0);
+				raytraceresult = level.clip(new RayTraceContext(temppos, temppos.add(normalMovement), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+			}
+			if (!edge2 || raytraceresult.getType() == RayTraceResult.Type.MISS) {
+				if (edge1 && edge2) {
+					// Since edge2 is true, temppos is already the position of the block next to the ball along 2nd axis, 
+					// so now we move 1 along the 1st axis as well for the corner.
+					temppos = temppos.add(	axisToTest == Axis.X ? halfwidth * (edgeh1 ? 1 : -1) : 0, 
+											axisToTest == Axis.Y ? halfheight * (edgeh1 ? 1 : -1) : 0, 
+											axisToTest == Axis.Z ? halfwidth * (edgeh1 ? 1 : -1) : 0);
+					raytraceresult = level.clip(new RayTraceContext(temppos, temppos.add(normalMovement), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+				}
+				if (!edge1 || !edge2 || raytraceresult.getType() == RayTraceResult.Type.MISS) {
+					// Do nothing if only misses
+					return HitType.MISS;
+				} else {
+					// Leave both booleans true
+					return HitType.CORNER;
+				}
+			} else {
+				return HitType.EDGE2;
+			}
+		} else {
+			return HitType.EDGE1;
+		}
+	}
+	
+	public static enum HitType {
+		MISS,
+		EDGE1,
+		EDGE2,
+		CORNER
+	}
+}

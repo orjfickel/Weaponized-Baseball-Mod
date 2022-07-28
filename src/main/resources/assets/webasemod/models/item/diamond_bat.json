@@ -1,0 +1,20 @@
+{
+	"parent": "item/handheld",
+	"textures": {
+		"layer0": "webasemod:item/bat/diamond_bat"
+	},
+	"overrides": [
+		{
+			"predicate": {
+				"throwindication": 0
+			},
+			"model": "webasemod:item/bat/diamond_bat_base"
+		},
+		{
+			"predicate": {
+				"throwindication": 1
+			},
+			"model": "webasemod:item/bat/diamond_bat_i"
+		}
+	]
+}

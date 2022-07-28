@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="All rights reserved"
+#issueTrackerURL=""
+showAsResourcePack=false
+[[mods]] #mandatory
+	modId="webasemod"
+	version="${file.jarVersion}"
+	displayName="Weaponised Baseball Mod"
+	#updateJSONURL=""
+	#displayURL=""
+	logoFile="banner.png"
+	#credits=""
+	authors="BlizzardFenix"
+	description="Introduces baseball and bouncy throwables to Minecraft."
+	#displayTest="MATCH_VERSION"
+
+	[[dependencies.webasemod]]
+		modId="forge"
+		mandatory=true
+		versionRange="[36,)"
+		ordering="NONE"
+		side="BOTH"
+	[[dependencies.webasemod]]
+		modId="minecraft"
+		mandatory=true
+		versionRange="[1.16.5,1.17)"
+		ordering="NONE"
+		side="BOTH"
