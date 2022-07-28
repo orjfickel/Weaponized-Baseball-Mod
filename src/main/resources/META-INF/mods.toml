@@ -1,6 +1,6 @@
 modLoader="javafml"
 loaderVersion="[36,)"
-license="All rights reserved"
+license="LGPLv3"
 #issueTrackerURL=""
 showAsResourcePack=false
 [[mods]] #mandatory
@@ -8,7 +8,7 @@ showAsResourcePack=false
 	version="${file.jarVersion}"
 	displayName="Weaponised Baseball Mod"
 	updateJSONURL="https://raw.githubusercontent.com/BlizzardFenix/Weaponised-Baseball-Mod/1.16/UpdateChecker.json"
-	#displayURL=""
+	displayURL="https://www.curseforge.com/minecraft/mc-mods/weaponised-baseball-mod"
 	logoFile="banner.png"
 	#credits=""
 	authors="BlizzardFenix"
