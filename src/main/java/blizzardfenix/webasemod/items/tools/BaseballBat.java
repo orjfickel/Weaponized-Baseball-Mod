@@ -45,16 +45,7 @@ public class BaseballBat extends SwordItem {
 	public boolean onLeftClickEntity(ItemStack stack, PlayerEntity player, Entity entity) {
 		boolean successHit = false;
 		if (!player.level.isClientSide() && entity.tickCount > 5) {
-			if (entity instanceof BouncyFireBallEntity) { // Summon a small fireball if a bouncy fireball is hit
-				SmallFireballEntity ballentity = (SmallFireballEntity) entity;
-				ballentity.setOwner(player);
-		        Vector3d newvel = player.getLookAngle().scale(1.2F * (1.0F + 0.3F * this.getDamage()));
-		        ballentity.setDeltaMovement(newvel);
-		        ballentity.xPower = newvel.x * 0.1D;
-		        ballentity.yPower = newvel.y * 0.1D;
-	            ballentity.zPower = newvel.z * 0.1D;
-	            successHit = true;
-			} else if (entity instanceof ProjectileItemEntity) {
+			if (entity instanceof ProjectileItemEntity) {
 				ProjectileItemEntity throwableentity = (ProjectileItemEntity) entity;
 				throwableentity.setOwner(player);
 				boolean isBouncyBall = entity instanceof BouncyBallEntity;

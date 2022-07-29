@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import blizzardfenix.webasemod.BaseballMod;
 import blizzardfenix.webasemod.commands.SetThrowableVarCommand;
+import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.entity.BouncyBallEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.init.ModKeyBindings;
@@ -108,7 +109,6 @@ public class ModEventSubscriber {
     			}
     		});
     	});
-		LOGGER.info("Updated dispenser throwing behaviour");
     }
     
     @SubscribeEvent
@@ -137,7 +137,7 @@ public class ModEventSubscriber {
 		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to right click, or if the held item is a vanilla throwable, then try to throw the held item.
 		// BaseballItems handle throwing themselves through Item.use()
 		if ((ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey() && tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && 
-				!(item instanceof BaseballItem)) || tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) ) {
+				!(item instanceof BaseballItem)) || (tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
 				ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement());
 				if (result.consumesAction()) {

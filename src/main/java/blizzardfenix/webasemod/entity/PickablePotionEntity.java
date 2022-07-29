@@ -3,12 +3,12 @@ package blizzardfenix.webasemod.entity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.EnderPearlEntity;
+import net.minecraft.entity.projectile.PotionEntity;
 import net.minecraft.network.IPacket;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
 
-public class PickablePotionEntity extends EnderPearlEntity {
+public class PickablePotionEntity extends PotionEntity {
 
 	public PickablePotionEntity(EntityType<? extends PickablePotionEntity> entityType, World level) {
 		super(entityType, level);

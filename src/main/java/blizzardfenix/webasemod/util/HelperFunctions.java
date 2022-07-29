@@ -57,7 +57,7 @@ public class HelperFunctions {
 			soundEvent = SoundEvents.SNOWBALL_THROW;
 		else if(item == Items.EXPERIENCE_BOTTLE)
 			soundEvent = SoundEvents.EXPERIENCE_BOTTLE_THROW;
-		else if(item == Items.POTION)
+		else if(item == Items.SPLASH_POTION)
 			soundEvent = SoundEvents.SPLASH_POTION_THROW;
 		else
 			soundEvent = SoundEvents.EGG_THROW;
@@ -113,38 +113,29 @@ public class HelperFunctions {
 
 	public static ActionResultType tryThrow(World level, PlayerEntity player, Hand hand, Vector3d playerVelocity) {
 		ItemStack itemstack = player.getItemInHand(hand);
+		Item item = itemstack.getItem();
 		if (!itemstack.isEmpty()) {
-			Item item = itemstack.getItem();
 			ITagCollection<Item> tags = ItemTags.getAllTags();
 			boolean isExistingThrowable = tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item);
 			if (tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) || isExistingThrowable) {
 				ActionResultType result;
 				if (isExistingThrowable) {
-					ProjectileItemEntity itementity;
-					if (ServerConfig.hittable_vanilla_throwables.get()) {
+					if (ServerConfig.override_vanilla_throwables.get()) {
+						ProjectileItemEntity itementity;
 						if(item == Items.ENDER_PEARL)
 							itementity = new PickableEnderPearlEntity(level, player);
 						else if(item == Items.EGG)
 							itementity = new PickableEggEntity(level, player);
 						else if(item == Items.EXPERIENCE_BOTTLE)
 							itementity = new PickableExperienceBottleEntity(level, player);
-						else if(item == Items.POTION)
+						else if(item == Items.SPLASH_POTION)
 							itementity = new PickablePotionEntity(level, player);
 						else
 							itementity = new PickableSnowballEntity(level, player);
+						result = HelperFunctions.throwBall(level, player, itemstack, itementity, playerVelocity).getResult();
 					} else {
-						if(item == Items.ENDER_PEARL)
-							itementity = new EnderPearlEntity(level, player);
-						else if(item == Items.EGG)
-							itementity = new EggEntity(level, player);
-						else if(item == Items.EXPERIENCE_BOTTLE)
-							itementity = new ExperienceBottleEntity(level, player);
-						else if(item == Items.POTION)
-							itementity = new PotionEntity(level, player);
-						else
-							itementity = new SnowballEntity(level, player);
+						return item.use(level, player, hand).getResult();
 					}
-					result = HelperFunctions.throwBall(level, player, itemstack, itementity, playerVelocity).getResult();
 				} else {
 					BouncyBallEntity throwableentity;
 					if (item == Items.FIRE_CHARGE) {
@@ -155,7 +146,7 @@ public class HelperFunctions {
 						throwableentity = new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), level, player);
 					result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, playerVelocity).getResult();
 				}
-
+	
 				if(result.consumesAction() && result.shouldSwing())
 				{
 					if (level.isClientSide()) {
