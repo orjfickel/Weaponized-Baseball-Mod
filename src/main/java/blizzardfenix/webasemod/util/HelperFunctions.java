@@ -160,7 +160,6 @@ public class HelperFunctions {
 				{
 					if (level.isClientSide()) {
 						player.swing(hand);
-						BaseballMod.LOGGER.debug("call player.swing");
 					}
 					else
 						player.swing(hand, true);

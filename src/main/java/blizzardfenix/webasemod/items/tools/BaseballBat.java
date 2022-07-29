@@ -45,7 +45,16 @@ public class BaseballBat extends SwordItem {
 	public boolean onLeftClickEntity(ItemStack stack, PlayerEntity player, Entity entity) {
 		boolean successHit = false;
 		if (!player.level.isClientSide() && entity.tickCount > 5) {
-			if (entity instanceof ProjectileItemEntity) {
+			if (entity instanceof BouncyFireBallEntity) { // Summon a small fireball if a bouncy fireball is hit
+				SmallFireballEntity ballentity = (SmallFireballEntity) entity;
+				ballentity.setOwner(player);
+		        Vector3d newvel = player.getLookAngle().scale(1.2F * (1.0F + 0.3F * this.getDamage()));
+		        ballentity.setDeltaMovement(newvel);
+		        ballentity.xPower = newvel.x * 0.1D;
+		        ballentity.yPower = newvel.y * 0.1D;
+	            ballentity.zPower = newvel.z * 0.1D;
+	            successHit = true;
+			} else if (entity instanceof ProjectileItemEntity) {
 				ProjectileItemEntity throwableentity = (ProjectileItemEntity) entity;
 				throwableentity.setOwner(player);
 				boolean isBouncyBall = entity instanceof BouncyBallEntity;
@@ -57,52 +66,42 @@ public class BaseballBat extends SwordItem {
 			        Vector3d newvel = player.getLookAngle().scale(shootspeed);
 			        ballentity.hitbybat = true;
 			        
+			        // Apply enchantments
 			        if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.INFINITY_ARROWS, stack) > 0 && !ballentity.infinityHit 
 			        		&& ballentity.pickupStatus == PickupStatus.ALLOWED) {
 			        	ballentity.infinityHit = true;
 			        	ballentity.pickupStatus = PickupStatus.CREATIVE_ONLY;
 			        	player.inventory.add(throwableentity.getItem().copy());
-			        }
-			        
+			        }			        
 		            int power = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.POWER_ARROWS, stack);
 		            if (power > 0) {
 		            	ballentity.comboDmg += (double)power * 0.5D + 0.5D;
-		            }
-		
+		            }		
 		            int punch = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.PUNCH_ARROWS, stack);
 		            if (punch > 0) {
 		            	ballentity.mass += punch * 10;
-		            }
-		
+		            }		
 		            int fire = EnchantmentHelper.getFireAspect(player);
 		            if (fire > 0) {
 		            	ballentity.health += fire * 4;
 		            	ballentity.setSecondsOnFire(fire * 4);
-		            }
-		            
+		            }		            
 		            if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, stack) > 0) {
 		            	ballentity.health += 100;
 		            	ballentity.setSecondsOnFire(100);
 		            }
+		            
 			        ballentity.hitBall(newvel, ballentity.baseInaccuracy * 2.5F);
 				} else {
+					// Hit a throwable that is not an instance of BouncyBallEntity
 			        float shootspeed = 1.2F * (1.0F + 0.3F * this.getDamage());
 			        Vector3d newvel = player.getLookAngle().scale(shootspeed);
 					float inaccuracy = 1.0F;
-					//if(!player.level.isClientSide) throwableentity.markHurt(); // TODO: use interface on subclasses to call markHurt and/or use synceddoubles
+
 					throwableentity.setDeltaMovement(newvel.normalize().add(Item.random.nextDouble() * 0.0075D * (double)inaccuracy, 
 							Item.random.nextDouble() * 0.0075D * (double)inaccuracy, 
 							Item.random.nextDouble() * 0.0075D * (double)inaccuracy).scale((double)newvel.length()));
 				}
-	            successHit = true;
-			} else if (entity instanceof BouncyFireBallEntity) {
-				SmallFireballEntity ballentity = (SmallFireballEntity) entity;
-				ballentity.setOwner(player);
-		        Vector3d newvel = player.getLookAngle().scale(1.2F * (1.0F + 0.3F * this.getDamage()));
-		        ballentity.setDeltaMovement(newvel);
-		        ballentity.xPower = newvel.x * 0.1D;
-		        ballentity.yPower = newvel.y * 0.1D;
-	            ballentity.zPower = newvel.z * 0.1D;
 	            successHit = true;
 			}
 		}
@@ -156,29 +155,10 @@ public class BaseballBat extends SwordItem {
 				(enchantment != Enchantments.SHARPNESS && super.canApplyAtEnchantingTable(stack, enchantment));
 	}
 	
-	// Can just always be true why not
 	@Override
 	public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
 		Map<Enchantment, Integer> enchmap = EnchantmentHelper.getEnchantments(book);
 		
 		return !enchmap.containsKey(Enchantments.SHARPNESS) && super.isBookEnchantable(stack, book);
-	}
-	
-	@Override
-	public boolean canAttackBlock(BlockState blockState, World world, BlockPos blockPos, PlayerEntity entity) {
-		// The code below is to make hitting/mining a bell with a bat trigger the bell, but this function does not get called in survival mode
-		// And I don't have time to find a fix.
-//		logger.debug("Attacked " + blockState + "  " + blockState.is(Blocks.BELL));
-//		if (blockState.is(Blocks.BELL)) {//TODO: test
-//			if (world.isClientSide()) {
-//				Minecraft mc = Minecraft.getInstance();
-//	            BlockRayTraceResult blockraytraceresult = (BlockRayTraceResult)mc.hitResult;
-//	            ActionResultType actionresulttype1 = mc.gameMode.useItemOn(mc.player, mc.level, Hand.MAIN_HAND, blockraytraceresult);
-//	            // Sure hope this doesn't break anything
-//	            logger.debug("Attacked2 " + mc.hitResult + "  " + mc.hitResult.getType());
-//            }
-//			return false;
-//		}
-		return super.canAttackBlock(blockState, world, blockPos, entity);
 	}
 }

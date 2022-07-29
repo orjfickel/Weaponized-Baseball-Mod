@@ -88,7 +88,6 @@ public class ModEntityTypes {
 			.sized(0.35F, 0.35F)
 			.build(new ResourceLocation(BaseballMod.MODID, MOCKARROW_NAME).toString()));
 	
-	//TODO: increase other vanilla throwable sizes & override use functions
 	public static final String PICKABLE_SNOWBALL_NAME = "pickable_snowball";
 	public static final RegistryObject<EntityType<PickableSnowballEntity>> PICKABLE_SNOWBALL_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_SNOWBALL_NAME, () -> EntityType.Builder.<PickableSnowballEntity>

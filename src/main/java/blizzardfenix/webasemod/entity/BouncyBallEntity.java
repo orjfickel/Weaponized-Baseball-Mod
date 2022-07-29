@@ -99,10 +99,6 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 			blockbounce = 0.8F;
 			blockfric = 0.9F;
 		}
-		
-		//ITagCollection<Block> tags = BlockTags.getAllTags();
-		//if (tags.getTag(new ResourceLocation("forge","stone")).contains(block))
-			//blockfric = 0.75F;
 
 		float totalbounciness = this.bounciness * blockbounce;
 		float totalfriction = friction * blockfric * block.getSpeedFactor();
@@ -170,8 +166,6 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 			if (target.getType() == EntityType.ENDERMAN) {
 				return successAttack;
 			}
-			
-			
 			// Code for ricochetting
 			//Entity thrower = this.getOwner(); // Note: this is null on the client
 //			boolean specialbounce = target != thrower && target instanceof LivingEntity && speed > 0.4F;
@@ -242,8 +236,6 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		} else {
 			entitybounciness = this.bounciness * entitybounciness;
 			entityfriction = this.friction * entityfriction;
-//			LOGGER.debug("bounce " + bounciness + " fric " + friction);
-//			LOGGER.debug("Hit entity before interp bounce " + entitybounciness + " fric " + entityfriction);
 		}
 		
 		float relativespeed = (float) relativemot.length();
@@ -252,8 +244,6 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		entitybounciness = BallPhysicsHelper.interpolateDown(entitybounciness, relativespeed, idleSpeed);
 		// Increase the (static) friction if the ball moves very slow
 		entityfriction = BallPhysicsHelper.interpolateDown(entityfriction, relativespeed, idleSpeed);
-//		LOGGER.debug("Hit thispos " + posvec + " otherpos " + otherposvec);
-//		LOGGER.debug("Hit entity posdif " + posdiff);
 
 		// Calculate the new impulse vector for this ball and the other entity.
 		if (isBouncyBall) {
@@ -311,17 +301,6 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		if (newimpulse.lengthSqr() < this.epsilonSpeedSqr) newimpulse = Vector3d.ZERO;
 		if (othernewimpulse.lengthSqr() < this.epsilonSpeedSqr) othernewimpulse = Vector3d.ZERO;
 
-//		LOGGER.debug("Hit impulse " + (newimpulse));
-//		LOGGER.debug("Hit relativemot " + (relativemot));//TODO: why is other entity moving down so fast????
-//		LOGGER.debug("Hit othermot " + (targetvelocity));
-//		LOGGER.debug("Hit mot " + (this.getDeltaMovement()));
-//		LOGGER.debug("Hit final   " + this.getDeltaMovement().add(newimpulse));
-//		if (random.nextFloat() < 0.5F)
-//		{
-//			newimpulse.scale(10);
-//			LOGGER.debug("Hit scaled " + this.getDeltaMovement().add(newimpulse));
-//		}
-		
 		// Actually apply the new impulse
 		this.bounceBall(this.getDeltaMovement().add(newimpulse), 0);
 
@@ -354,38 +333,38 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 	    * Currently unused as it still needs tweaking.
 	    * Bounces/shoots the ball at the nexttarget entity.
 	*/
-	public void bounceBall(Entity nexttarget) {
-	    double xdir = nexttarget.getX() - this.getX();
-	    double yplus = 10.0D;
-	    double ydir = nexttarget.getEyeY() - this.getY();
-	    double ydirplus = ydir + yplus;
-	    double zdir = nexttarget.getZ() - this.getZ();
-
-	    double dist = Math.sqrt(xdir * xdir + 0.04D * ydirplus * ydirplus * ydirplus + zdir * zdir -  0.04D * yplus*yplus*yplus) + 0.15D * ydir;
-	    Vector3d shootvec = new Vector3d(xdir, ydir, zdir);
-	    double hordist = Math.sqrt(getHorizontalDistanceSqr(shootvec));
-	    double xRot = -(MathHelper.atan2(shootvec.y, hordist) * 
-	    		(180D / Math.PI));
-	    float yRot = (float) -(MathHelper.atan2(shootvec.x, shootvec.z) * (180D / Math.PI));
-
-	    double powdist = Math.pow(dist, 0.6D);
-	    float speedscale = (float) Math.max(0.2D, 0.1475D * powdist + 0.03D);
-	    double distfrac = 1.0D / Math.max(((dist - 0.6D * ydir) * 0.05D + 1.0D), 1.0D);
-	    LOGGER.debug("dist bounce ball target " + dist + " distfrac " + distfrac + " rawdistnofrac " + ((dist - 0.6D * ydir) * 0.05D + 1.0D));
-	    // In principle, the ball is aimed at 45 degree angle if the target is at the same height position, otherwise converges to throwing straight. 
-	    // On the other hand, distfrac makes sure that the ball is almost thrown straight if the target is close, but converges to throwing
-	    // according to the above rule as the target moves further away.
-		double anglediff = (90 - Math.abs(xRot));
-	    float pitchrot = (float) ((xRot - 0.5D * (anglediff)) * (1.0D-distfrac) + xRot * distfrac);
-	    LOGGER.debug("bounce target powdist" + powdist + " xRot " + xRot + " pitchrot " + pitchrot);
-	    
-	    if (speedscale < 0 || Float.isNaN(speedscale)) {
-	    	LOGGER.debug("BAD SPEEDSCALE " + speedscale);
-	    	this.dropSelf();
-	    	return;
-	    }
-		this.shootFromRotation(this.getOwner(), (float) pitchrot, yRot, 0.0F, speedscale, this.baseInaccuracy);
-	}
+//	public void bounceBall(Entity nexttarget) {
+//	    double xdir = nexttarget.getX() - this.getX();
+//	    double yplus = 10.0D;
+//	    double ydir = nexttarget.getEyeY() - this.getY();
+//	    double ydirplus = ydir + yplus;
+//	    double zdir = nexttarget.getZ() - this.getZ();
+//
+//	    double dist = Math.sqrt(xdir * xdir + 0.04D * ydirplus * ydirplus * ydirplus + zdir * zdir -  0.04D * yplus*yplus*yplus) + 0.15D * ydir;
+//	    Vector3d shootvec = new Vector3d(xdir, ydir, zdir);
+//	    double hordist = Math.sqrt(getHorizontalDistanceSqr(shootvec));
+//	    double xRot = -(MathHelper.atan2(shootvec.y, hordist) * 
+//	    		(180D / Math.PI));
+//	    float yRot = (float) -(MathHelper.atan2(shootvec.x, shootvec.z) * (180D / Math.PI));
+//
+//	    double powdist = Math.pow(dist, 0.6D);
+//	    float speedscale = (float) Math.max(0.2D, 0.1475D * powdist + 0.03D);
+//	    double distfrac = 1.0D / Math.max(((dist - 0.6D * ydir) * 0.05D + 1.0D), 1.0D);
+//	    LOGGER.debug("dist bounce ball target " + dist + " distfrac " + distfrac + " rawdistnofrac " + ((dist - 0.6D * ydir) * 0.05D + 1.0D));
+//	    // In principle, the ball is aimed at 45 degree angle if the target is at the same height position, otherwise converges to throwing straight. 
+//	    // On the other hand, distfrac makes sure that the ball is almost thrown straight if the target is close, but converges to throwing
+//	    // according to the above rule as the target moves further away.
+//		double anglediff = (90 - Math.abs(xRot));
+//	    float pitchrot = (float) ((xRot - 0.5D * (anglediff)) * (1.0D-distfrac) + xRot * distfrac);
+//	    LOGGER.debug("bounce target powdist" + powdist + " xRot " + xRot + " pitchrot " + pitchrot);
+//	    
+//	    if (speedscale < 0 || Float.isNaN(speedscale)) {
+//	    	LOGGER.debug("BAD SPEEDSCALE " + speedscale);
+//	    	this.dropSelf();
+//	    	return;
+//	    }
+//		this.shootFromRotation(this.getOwner(), (float) pitchrot, yRot, 0.0F, speedscale, this.baseInaccuracy);
+//	}
 	
 	public void hitBall(Vector3d shootvec, float inaccuracy) {
 		this.bounceBall(shootvec, inaccuracy);

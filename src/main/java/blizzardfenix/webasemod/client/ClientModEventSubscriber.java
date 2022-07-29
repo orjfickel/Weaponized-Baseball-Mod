@@ -44,14 +44,14 @@ public final class ClientModEventSubscriber {
 		RenderingRegistry.registerEntityRenderingHandler(ModEntityTypes.BOUNCY_FIREBALL_ENTITY.get(), manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0, 0.75F, true));
 			
 		if (ClientConfig.sprite_fix.get()) {
-			//RenderingRegistry.registerEntityRenderingHandler(EntityType.EGG, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.03F, 1.0F, false));
-			//RenderingRegistry.registerEntityRenderingHandler(EntityType.ENDER_PEARL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
-			//RenderingRegistry.registerEntityRenderingHandler(EntityType.EXPERIENCE_BOTTLE, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.1F, 1.0F, false));
+			RenderingRegistry.registerEntityRenderingHandler(EntityType.EGG, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.03F, 1.0F, false));
+			RenderingRegistry.registerEntityRenderingHandler(EntityType.ENDER_PEARL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
+			RenderingRegistry.registerEntityRenderingHandler(EntityType.EXPERIENCE_BOTTLE, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.1F, 1.0F, false));
 			RenderingRegistry.registerEntityRenderingHandler(EntityType.EYE_OF_ENDER, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0, 1.0F, true));
 			RenderingRegistry.registerEntityRenderingHandler(EntityType.FIREBALL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0, 3.0F, true));
-			//RenderingRegistry.registerEntityRenderingHandler(EntityType.POTION, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.1F, 1.0F, false));
+			RenderingRegistry.registerEntityRenderingHandler(EntityType.POTION, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.1F, 1.0F, false));
 			RenderingRegistry.registerEntityRenderingHandler(EntityType.SMALL_FIREBALL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0, 0.75F, true));
-			//RenderingRegistry.registerEntityRenderingHandler(EntityType.SNOWBALL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
+			RenderingRegistry.registerEntityRenderingHandler(EntityType.SNOWBALL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
 			RenderingRegistry.registerEntityRenderingHandler(ModEntityTypes.PICKABLE_SNOWBALL_ENTITY.get(), manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
 			RenderingRegistry.registerEntityRenderingHandler(ModEntityTypes.PICKABLE_EGG_ENTITY.get(), manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
 			RenderingRegistry.registerEntityRenderingHandler(ModEntityTypes.PICKABLE_ENDER_PEARL_ENTITY.get(), manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
@@ -68,6 +68,7 @@ public final class ClientModEventSubscriber {
 		ItemModelsProperties.register((ModItems.IRON_BASEBALL_BAT.get()), new ResourceLocation("throwindication"), ClientModEventSubscriber::setThrowUp);
 		ItemModelsProperties.register((ModItems.DIAMOND_BASEBALL_BAT.get()), new ResourceLocation("throwindication"), ClientModEventSubscriber::setThrowUp);
 		ItemModelsProperties.register((ModItems.NETHERITE_BASEBALL_BAT.get()), new ResourceLocation("throwindication"), ClientModEventSubscriber::setThrowUp);
+		
 		LOGGER.info("Registered clientside stuff");
 	}
 	

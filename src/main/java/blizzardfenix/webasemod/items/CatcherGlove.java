@@ -4,6 +4,7 @@ import blizzardfenix.webasemod.entity.BouncyBallEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.stats.Stats;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.SoundCategory;
@@ -42,40 +43,8 @@ public class CatcherGlove extends Item {
 				});
 			}
 		}
-		//player.awardStat(Stats.ITEM_USED.get(this));
+		player.awardStat(Stats.ITEM_USED.get(this));
 
 		return ActionResult.sidedSuccess(itemstack, level.isClientSide());
 	}
-	
-	// Experimenting with using a different animation
-//	@Override
-//	public void onUseTick(World level, LivingEntity entity, ItemStack item, int remTicks) {
-//		LOGGER.debug("using " + test);
-//		
-//	}
-//
-//	@Override
-//	public UseAction getUseAnimation(ItemStack p_77661_1_) {
-//		LOGGER.debug("test " + test);
-//		switch (test) {
-//		case 0:
-//			return UseAction.BLOCK;
-//		case 1:
-//			return UseAction.BOW;
-//		case 2:
-//			return UseAction.CROSSBOW;
-//		case 3:
-//			return UseAction.DRINK;
-//		case 4:
-//			return UseAction.EAT;
-//		case 5:
-//			return UseAction.SPEAR;
-//		}
-//		return UseAction.BLOCK;
-//	}
-//
-//	@Override
-//	public int getUseDuration(ItemStack p_77626_1_) {
-//		return 32;
-//	}
 }

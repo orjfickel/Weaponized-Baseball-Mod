@@ -60,7 +60,6 @@ public class MockArrow extends AbstractArrowEntity implements IEntityAdditionalS
 	@Nullable
 	public ThrowableBallEntity getSpawner() {
 		if ((this.spawner == null || !this.spawner.isAlive()) && this.spawnerid != null && this.level instanceof ServerWorld) {
-			LOGGER.debug("ifpass");
 			Entity entity = ((ServerWorld) this.level).getEntity(this.spawnerid);
 			if (entity instanceof ThrowableBallEntity) {
 				this.spawner = (ThrowableBallEntity) entity;
@@ -68,7 +67,6 @@ public class MockArrow extends AbstractArrowEntity implements IEntityAdditionalS
 				this.spawner = null;
 			}
 		}
-		LOGGER.debug("getspawner " + spawner);
 		return this.spawner;
 	}
 	
@@ -84,36 +82,19 @@ public class MockArrow extends AbstractArrowEntity implements IEntityAdditionalS
 		super.readAdditionalSaveData(compound);
 		if (compound.contains("spawner") && this.level instanceof ServerWorld)
 			this.spawnerid = NBTUtil.loadUUID(compound.get("spawner"));
-		LOGGER.debug("readadditional " + this.spawnerid);
 	}
-	
-//	@Override
-//	public IPacket<?> getAddEntityPacket() {
-//		LOGGER.debug("sentspawnpacket mockarrow----------------------------------------------------");
-//		return NetworkHooks.getEntitySpawningPacket(this);
-//	}
 	
 	@Override
 	public boolean isInvisible() {
 		return true;
 	}
 	
-	
 	@Override
 	public void writeSpawnData(PacketBuffer buffer) {
-//		LOGGER.debug(this.spawner);
-//		LOGGER.debug(this.spawnerid);
-//		LOGGER.debug(this.getSpawner());
-		//buffer.writeInt(this.getSpawner().getId());
-		//this.spawnerid = spawner.getUUID();
 	}
 
 	@Override
 	public void readSpawnData(PacketBuffer additionalData) {
-		//int entityid = additionalData.readInt();
-		//this.spawner = (ThrowableBallEntity) this.level.getEntity(entityid);
-		//this.spawner.setMockArrow(this);
-//		LOGGER.debug("readspawn " + this.spawner);
 	}
 	
 	@Override

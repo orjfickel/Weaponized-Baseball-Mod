@@ -214,8 +214,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		this.useOnEntityHit = properties.useOnEntityHit;
 		this.useOnBlockHit = properties.useOnBlockHit;
 		this.useOnIdle = properties.useOnIdle;
-		
-		LOGGER.debug("initialise " + baseInaccuracy);
 	}
 	
 	@Override
@@ -307,15 +305,12 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		velocity = velocity.scale((double) drag);
 		this.setDeltaMovement(velocity);
 
-		//if (!this.level.isClientSide()) {
 		if (velocity.lengthSqr() > 0.2*0.2) {
 			this.fastMove();
 		} else {
 			this.slowMove(); // Also handles changing position
 			this.testInsideBlock();
 		}
-		//}
-		
 
 		this.updateRotation(); 
 
@@ -352,23 +347,17 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			return this.canHitEntity(entityIn);
 		});
 
-		//LOGGER.debug("fastmove " + this.position() + getDeltaMovement() + this.level.isClientSide);
-
 		boolean entityhit = false;
 		Entity entity = null;
 		boolean isThrowableBall = false;
-		//if (!this.level.isClientSide) {
-			if (entityres != null) {
-				entity = entityres.getEntity();
-				isThrowableBall = entity instanceof ThrowableBallEntity;
-				entityhit = !isThrowableBall || this.level.isClientSide || !this.isRegistered((ThrowableBallEntity) entity);
-			}
-		//}
+		if (entityres != null) {
+			entity = entityres.getEntity();
+			isThrowableBall = entity instanceof ThrowableBallEntity;
+			entityhit = !isThrowableBall || this.level.isClientSide || !this.isRegistered((ThrowableBallEntity) entity);
+		}
 		
 		if (entityhit) {
 			Vector3d expmovement = mot.scale(0.4F); // A very very rough estimation of where along the motion trajectory the ball actually hits the entity
-//			newpos = this.position().add(expmovement);
-//			this.setPos(newpos.x, newpos.y, newpos.z);
 			this.move(MoverType.SELF, expmovement);
 			this.setDeltaMovement(mot);
 			if (!this.level.isClientSide) {
@@ -416,8 +405,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		// Do not handle further collision on the client or on lite mode
 		if (this.level.isClientSide || ServerConfig.lite_mode.get())
 			return;
-		
-		// TODO: optimise when idle? Have to do some entity collision for entities that are not throwable balls.
 
 		// Handle entity collisions after the block collisions, since in order to detect a block collision we need to have already moved and actually hit a block.
 		this.boxCollideEntities();
@@ -469,7 +456,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			this.againstZWall = zblock;
 		if (expmovement.y != 0)
 			this.onGround = yblock && expmovement.y <= 0;
-//		
+
 		// The position we hit is our original position plus the expected movement scaled so that the added x movement is exactly the allowed x movement.
 		// Ensure allowedmotionvec moves us directly to the hitvec
 		allowedmotionvec = expmovement.scale(xblock ? allowedmotionvec.x/expmovement.x :
@@ -741,7 +728,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		switch(result.getDirection().getAxis()) {
 		case X:
 			impactspeed = Math.abs((float)prevvel.x);
-//			this.level.broadcastEntityEvent(this, (byte) 4);
 			break;
 		case Y:
 			impactspeed = Math.abs((float)prevvel.y);
@@ -750,7 +736,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			impactspeed = Math.abs((float)prevvel.z);
 			break;
 		};
-		if (speed > 0.3F) // Used to be > this.mindamagespeed
+		if (speed > 0.3F)
 			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
 		
 		// Reset the combo
@@ -825,7 +811,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		boolean successAttack = false;
 		boolean hitThrower = target.is(thrower);
 
-		
+		// If we're moving fast enough, try to hurt the target entity
 		if (speed > minDmgSpeed) {
 			float attackdmg = this.baseDmg;
 			if (!hitThrower) attackdmg += this.comboDmg;
@@ -839,8 +825,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				actualdmg = (int) Math.min(j + (long) actualdmg, Integer.MAX_VALUE);
 			}
 			
-			if (target instanceof LivingEntity)
-				LOGGER.debug("hurt " + target.getType().toString() + " dmg " + actualdmg + " health: " + ((LivingEntity)target).getHealth());
 			Entity sourceEntity;
 			// Pretend to be an arrow if we hit a specific entity
 			if (target instanceof TNTMinecartEntity || target instanceof WolfEntity || target instanceof ServerPlayerEntity
@@ -863,6 +847,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			successAttack = target.hurt(source, actualdmg);
 			target.setDeltaMovement(targetvelocity);
 		}
+		
 		if (successAttack) {
 			if (target.getType() == EntityType.ENDERMAN) {
 				return successAttack;
@@ -953,7 +938,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			compound.put("mockarrow", NBTUtil.createUUID(this.arrowId));
 		compound.putByte("pickup", (byte) this.pickupStatus.ordinal());
 
-		//TODO: these should be made immutable and thus not necessary to be saved
 		compound.putInt("health", this.health);
 		compound.putFloat("mass", this.mass);
 		compound.putFloat("basedmg", this.baseDmg);
@@ -1008,7 +992,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		this.infinityHit =  compound.getBoolean("infinityHit");
 	}
 	
-//	/** Necessary for rendering */
+	/** Necessary for rendering */
 	@Override
 	public IPacket<?> getAddEntityPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
@@ -1052,7 +1036,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			return true;
 		}
 		
-		//Entity sourceEntity = source.getEntity();
 		if (directEntity instanceof PlayerEntity) {
 			Item heldItem = ((PlayerEntity)directEntity).getMainHandItem().getItem();
 			if (heldItem instanceof BaseballBat) {
@@ -1060,9 +1043,9 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			} else if (heldItem instanceof TieredItem) {
 				this.destroy();
 				return true;
-			} else if (heldItem == Items.STICK) {
-				this.tracking = !this.tracking;
-				return true;
+//			} else if (heldItem == Items.STICK) {// For debugging
+//				this.tracking = !this.tracking;
+//				return true;
 			}
 		}
 
@@ -1133,7 +1116,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	@OnlyIn(Dist.CLIENT)
 	protected void createBreakParticles() {
 		ItemStack itemstack = this.getHalfItem();
-		LOGGER.debug(itemstack);
 		IParticleData iparticledata = (IParticleData) (new ItemParticleData(ParticleTypes.ITEM, itemstack));
 		
 		for (int i = 0; i < 8; ++i) {
@@ -1149,30 +1131,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			this.level.addParticle(iparticledata, this.getX(), this.getY(), this.getZ(), xd, yd, zd);
 		}
 	}
-	
-//	protected void playBlockHitSound(Axis axis) {
-//		Vector3d vel = this.getDeltaMovement();
-//		// Play the impact sound
-//		float speed = (float) vel.length();
-//		float impactspeed = 0;
-//		switch(axis) {
-//		case X:
-//			impactspeed = Math.abs((float)vel.x);
-//			break;
-//		case Y:
-//			impactspeed = Math.abs((float)vel.y);
-//			break;
-//		case Z:
-//			impactspeed = Math.abs((float)vel.z);
-//			break;
-//		}
-//		BlockPos blockPos = result.getBlockPos();
-//		BlockState hitblockstate = this.level.getBlockState(blockPos);
-//		Block blockhit = hitblockstate.getBlock();
-//		if (speed > 0.1F) // Used to be > this.mindamagespeed
-//			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
-//		
-//	}
 
 	@Override
 	@OnlyIn(Dist.CLIENT)
@@ -1181,15 +1139,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		case 3:
 			this.createBreakParticles();
 			break;
-//		case 4:
-//			this.playBlockHitSound(Axis.X);
-//			break;
-//		case 5:
-//			this.playBlockHitSound(Axis.Y);
-//			break;
-//		case 6:
-//			this.playBlockHitSound(Axis.Z);
-//			break;
 		default: 
 			break;
 		}

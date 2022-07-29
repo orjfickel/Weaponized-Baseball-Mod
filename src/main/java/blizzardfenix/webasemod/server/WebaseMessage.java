@@ -35,10 +35,8 @@ public class WebaseMessage {
 	}
 
 	public static void handle(WebaseMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
-		//NetworkEvent.Context context = contextSupplier.get();
 		contextSupplier.get().enqueueWork(() -> {
 			ServerPlayerEntity player = contextSupplier.get().getSender();
-			//player.setDeltaMovement(message.shooterVelocity);
 			HelperFunctions.tryThrow(player.getCommandSenderWorld(), player, message.hand, message.shooterVelocity);
 		});
 		contextSupplier.get().setPacketHandled(true);

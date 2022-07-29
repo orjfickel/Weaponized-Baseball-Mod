@@ -39,15 +39,6 @@ public class BaseballMod
     private void setup(final FMLCommonSetupEvent event)
     {
 		WebasePacketHandler.init();
-
-//    	HelperFunctions.THROWABLE_ITEMS.add(Items.TURTLE_EGG);
-//    	HelperFunctions.THROWABLE_ITEMS.add(Items.SLIME_BALL);
-//    	HelperFunctions.THROWABLE_ITEMS.add(Items.FIRE_CHARGE);
-//    	HelperFunctions.THROWABLE_ITEMS.add(ModItems.BASIC_BASEBALL.get());
-//    	HelperFunctions.THROWABLE_ITEMS.add(ModItems.DIRTBALL.get());
-//    	HelperFunctions.THROWABLE_ITEMS.add(ModItems.STONEBALL.get());
-//    	HelperFunctions.THROWABLE_ITEMS.add(ModItems.CORKBALL.get());
-    	
     }
 
     private void doClientStuff(final FMLClientSetupEvent event) 

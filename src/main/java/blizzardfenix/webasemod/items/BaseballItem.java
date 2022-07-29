@@ -21,23 +21,6 @@ public class BaseballItem extends Item {
 		super(builder);
 		this.properties = properties;
 	}
-	
-	// For when we add enchantment support for baseballs
-//	@Override
-//	public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
-//		return enchantment == Enchantments.FIRE_PROTECTION || enchantment == Enchantments.FIRE_ASPECT || 
-//				enchantment == Enchantments.KNOCKBACK || enchantment == Enchantments.SHARPNESS || 
-//				enchantment == Enchantments.MOB_LOOTING;
-//	}
-	/*
-	@Override
-	public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
-		Map<Enchantment, Integer> enchmap = EnchantmentHelper.getEnchantments(book);
-		
-		return enchmap.containsKey(Enchantments.FIRE_PROTECTION) || enchmap.containsKey(Enchantments.FIRE_ASPECT) || 
-				enchmap.containsKey(Enchantments.KNOCKBACK) || enchmap.containsKey(Enchantments.SHARPNESS) ||
-				enchmap.containsKey(Enchantments.LOOTING);
-	}*/
 		
 	@Override
 	public ActionResult<ItemStack> use(World level, PlayerEntity player, Hand hand) {

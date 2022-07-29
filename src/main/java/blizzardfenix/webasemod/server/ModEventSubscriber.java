@@ -125,17 +125,6 @@ public class ModEventSubscriber {
 			target.knockback(0.3F * ((BaseballBat)item).getDamage() - 0.2F, attacker.getX() - target.getX(), attacker.getZ() - target.getZ());
 		}
     }
-    
-//	@SubscribeEvent
-//	public static void onTickEvent(final TickEvent.WorldTickEvent event) {
-//		if (event.phase == Phase.START && event.side == LogicalSide.CLIENT) {
-//			// Loop through all throwable balls and apply position correction.
-//			ServerWorld world = (ServerWorld) event.world;
-//			for (ServerPlayerEntity player : world.players()) {
-//				
-//			}
-//		}
-//	}
 
 	@SubscribeEvent
 	public static void onRightClickItemEvent(final PlayerInteractEvent.RightClickItem event) {
@@ -151,7 +140,6 @@ public class ModEventSubscriber {
 				!(item instanceof BaseballItem)) || tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) ) {
 			if (level.isClientSide()) {
 				ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement());
-				LOGGER.debug("rightclickthrow " + result.consumesAction() + result);
 				if (result.consumesAction()) {
 					// If the throw was successful, tell the server to perform the throw as well
 					WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement()));

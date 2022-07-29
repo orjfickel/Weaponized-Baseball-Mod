@@ -31,7 +31,7 @@ public class SetThrowableVarCommand {
     }
     
     private static int setBounciness(CommandSource source, float value) {
-    	BaseballMod.LOGGER.debug("setBounciness " + value);
+    	BaseballMod.LOGGER.info("set global bounciness to " + value);
     	source.getLevel().getEntities(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), (input) -> { return true; }).forEach((entity) -> {
     		((ThrowableBallEntity) entity).bounciness = value;
     		Settings.bounciness = value;
@@ -42,7 +42,7 @@ public class SetThrowableVarCommand {
     }
     
     private static int setFriction(CommandSource source, float value) {
-    	BaseballMod.LOGGER.debug("setFriction " + value);
+    	BaseballMod.LOGGER.info("set global friction to " + value);
     	source.getLevel().getEntities(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), (input) -> { return true; }).forEach((entity) -> {
     		((ThrowableBallEntity) entity).friction = value;
     		Settings.friction = value;
