@@ -13,7 +13,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 @EventBusSubscriber(modid = BaseballMod.MODID, bus = EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class KeyEventHandler {
 	@SubscribeEvent
-	public static void onKeyPress(InputEvent.KeyInputEvent event) {
+	public static void onKeyPress(InputEvent.Key event) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null)
 			return;
@@ -21,7 +21,7 @@ public class KeyEventHandler {
 	}
 
 	@SubscribeEvent
-	public static void onMouseClick(InputEvent.MouseInputEvent event) {
+	public static void onMouseClick(InputEvent.MouseButton event) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null)
 			return;

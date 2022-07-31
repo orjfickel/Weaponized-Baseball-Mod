@@ -114,7 +114,7 @@ public class ModEventSubscriber {
     
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
-    	LivingEntity target = event.getEntityLiving();
+    	LivingEntity target = event.getEntity();
 		// Apply extra knockback if the target was hit with a bat
 		// (There don't seem to be any hooks for when an item is used to hit something that aren't limited to player attacks)
 		Entity sourceEntity = event.getSource().getEntity();
@@ -129,10 +129,10 @@ public class ModEventSubscriber {
 
 	@SubscribeEvent
 	public static void onRightClickItemEvent(final PlayerInteractEvent.RightClickItem event) {
-		Level level = event.getWorld();
+		Level level = event.getLevel();
 		ItemStack itemStack = event.getItemStack();
 		Item item = itemStack.getItem();
-		Player player = event.getPlayer();
+		Player player = event.getEntity();
 		ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
 		
 		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to the use key, 

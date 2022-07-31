@@ -18,7 +18,7 @@ import net.minecraftforge.registries.RegistryObject;
 
 public class ModEntityTypes {
 
-	public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.ENTITIES, BaseballMod.MODID);
+	public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, BaseballMod.MODID);
 
 	public static final String THROWABLE_ITEM_NAME = "throwable_item";
 	public static final RegistryObject<EntityType<BouncyBallEntity>> THROWABLE_ITEM_ENTITY =

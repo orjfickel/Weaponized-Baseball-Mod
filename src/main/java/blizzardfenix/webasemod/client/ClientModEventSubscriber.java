@@ -24,8 +24,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.ClientRegistry;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -37,10 +37,6 @@ public final class ClientModEventSubscriber {
 
 	@SubscribeEvent
 	public static void onFMLClientSetup(final FMLClientSetupEvent event) {
-		// Register key bindings
-		ClientRegistry.registerKeyBinding(ModKeyBindings.throwUpToggleKey);
-		ClientRegistry.registerKeyBinding(ModKeyBindings.throwKey);
-
 		// Make sure baseballs show an indication of how they are going to be thrown
 		ItemProperties.register((ModItems.WOODEN_BASEBALL_BAT.get()), new ResourceLocation("throwindication"), ClientModEventSubscriber::setThrowUp);
 		ItemProperties.register((ModItems.STONE_BASEBALL_BAT.get()), new ResourceLocation("throwindication"), ClientModEventSubscriber::setThrowUp);
@@ -51,6 +47,11 @@ public final class ClientModEventSubscriber {
 
 		LOGGER.info("Registered clientside stuff");
 	}
+	@SubscribeEvent
+	public static void onRegisterRenderers(final RegisterKeyMappingsEvent event) {
+		event.register(ModKeyBindings.throwUpToggleKey);
+		event.register(ModKeyBindings.throwKey);
+	}
 
 	@SubscribeEvent
 	public static void onRegisterRenderers(final RegisterRenderers event) {
@@ -60,7 +61,6 @@ public final class ClientModEventSubscriber {
 		event.registerEntityRenderer(ModEntityTypes.BOUNCY_FIREBALL_ENTITY.get(), manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0, 0.75F, true));
 		event.registerEntityRenderer(ModEntityTypes.MOCKARROW_ENTITY.get(), manager -> new EmptyRenderer<>(manager));
 			
-		if (ClientConfig.sprite_fix.get()) {
 			event.registerEntityRenderer(EntityType.EGG, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.03F, 1.0F, false));
 			event.registerEntityRenderer(EntityType.ENDER_PEARL, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
 			event.registerEntityRenderer(EntityType.EXPERIENCE_BOTTLE, manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer(), 0.1F, 1.0F, false));
@@ -76,7 +76,6 @@ public final class ClientModEventSubscriber {
 			event.registerEntityRenderer(ModEntityTypes.PICKABLE_EXPERIENCE_BOTTLE_ENTITY.get(), manager -> new CenteredSpriteRenderer<>(manager, Minecraft.getInstance().getItemRenderer()));
 			
 			event.registerEntityRenderer(EntityType.DRAGON_FIREBALL, manager -> new CenteredDragonFireBallRenderer(manager));
-		}
 	}
 	
 	static float setThrowUp(ItemStack itemStack, ClientLevel world, LivingEntity entity, int number) {

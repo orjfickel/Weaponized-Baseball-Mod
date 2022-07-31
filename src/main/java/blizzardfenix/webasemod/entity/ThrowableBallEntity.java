@@ -42,10 +42,12 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.IndirectEntityDamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -63,7 +65,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractGlassBlock;
-import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BushBlock;
@@ -82,7 +83,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeHooks;
@@ -92,7 +92,6 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.tags.ITagManager;
 
-// An item projectile that collides with blocks and entities, only lacks the bouncing logic
 public abstract class ThrowableBallEntity extends ThrowableItemProjectile implements IEntityAdditionalSpawnData {
 	private static final EntityDataAccessor<Byte> BOOLS = SynchedEntityData.defineId(ThrowableBallEntity.class, EntityDataSerializers.BYTE);
 	public UUID[] ballEntityHits; // All the ids of entities that were collided with during the current tick.
@@ -169,9 +168,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		this.maxBallCramming = this.level.getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
 		this.ballEntityHits = new UUID[this.maxBallCramming];
 		if (this.Pickup == null) {
-			this.Pickup = Pickup.DISALLOWED;
+			this.Pickup = AbstractArrow.Pickup.DISALLOWED;
 		}
 		this.idleTime = ServerConfig.throwable_idle_time.get();
+        this.gameEvent(GameEvent.PROJECTILE_SHOOT, this.getOwner());
 	}
 	
 	public void initProperties(Item item) {
@@ -742,6 +742,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		BlockPos blockPos = result.getBlockPos();
 		BlockState hitblockstate = this.level.getBlockState(blockPos);
 		Block blockhit = hitblockstate.getBlock();
+		
+        this.level.gameEvent(GameEvent.PROJECTILE_LAND, blockPos, GameEvent.Context.of(this, this.level.getBlockState(blockPos)));
 
 		// Play the impact sound
 		float speed = (float) prevvel.length();
@@ -758,7 +760,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			break;
 		};
 		if (speed > 0.3F)
-			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
+			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
 		
 		if (!this.level.isClientSide) {
 			// If we hit a target block, trigger TargetBlock's arrow hit functionality with our mock arrow, otherwise call onProjectileHit regularly
@@ -815,6 +817,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	public boolean onEntityImpact(EntityHitResult result) {
 		if (net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, result))
 			return false;
+		
+        this.level.gameEvent(GameEvent.PROJECTILE_LAND,this.position(), GameEvent.Context.of(this, (BlockState)null));
 		
 		Entity target = result.getEntity();
 		Vec3 velocity = this.getDeltaMovement();
@@ -909,7 +913,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	/** Adapted from {@link ThrowableItemProjectile#canHitEntity} because leftOwner couldn't be modified without calling tick() */
 	@Override
 	protected boolean canHitEntity(Entity entityIn) {// isAlive is only false when the entity has died or removed
-		if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
+		if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && entityIn.isPickable() && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
 			Entity owner = this.getOwner();
 			return owner == null || (this.leftOwner || entityIn != owner);
 		} else {

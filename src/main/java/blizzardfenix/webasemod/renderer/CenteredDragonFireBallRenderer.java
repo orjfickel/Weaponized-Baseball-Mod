@@ -73,7 +73,7 @@ public class CenteredDragonFireBallRenderer extends DragonFireballRenderer {
 	 * @param number3
 	 */
 	public void superEntityRender(DragonFireball entity, float number1, float number2, PoseStack matrixStack, MultiBufferSource renderBuffer, int number3) {
-		net.minecraftforge.client.event.RenderNameplateEvent renderNameplateEvent = new net.minecraftforge.client.event.RenderNameplateEvent(entity,
+		net.minecraftforge.client.event.RenderNameTagEvent renderNameplateEvent = new net.minecraftforge.client.event.RenderNameTagEvent(entity,
 				entity.getDisplayName(), this, matrixStack, renderBuffer, number3, number2);
 		net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(renderNameplateEvent);
 		if (renderNameplateEvent.getResult() != net.minecraftforge.eventbus.api.Event.Result.DENY

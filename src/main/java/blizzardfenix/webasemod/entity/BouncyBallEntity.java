@@ -25,6 +25,8 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.IEntityAdditionalSpawnData;
 
+import net.minecraft.world.entity.Entity.RemovalReason;
+
 /** Adds bouncing logic (direction & speed) and handles being hit */
 public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAdditionalSpawnData , ItemSupplier {
 	/** Chance of bouncing towards a living entity */
