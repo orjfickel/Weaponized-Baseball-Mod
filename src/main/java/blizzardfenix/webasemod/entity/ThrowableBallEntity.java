@@ -764,7 +764,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			break;
 		};
 		if (speed > 0.3F)
-			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
+			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
 		
 		if (!this.level.isClientSide) {
 			// If we hit a target block, trigger TargetBlock's arrow hit functionality with our mock arrow, otherwise call onProjectileHit regularly
@@ -915,7 +915,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	/** Adapted from {@link ProjectileItemEntity#canHitEntity} because leftOwner couldn't be modified without calling tick() */
 	@Override
 	protected boolean canHitEntity(Entity entityIn) {// isAlive is only false when the entity has died or removed
-		if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
+        if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && entityIn.isPickable() && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
 			Entity owner = this.getOwner();
 			return owner == null || (this.leftOwner || entityIn != owner);
 		} else {
