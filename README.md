@@ -22,6 +22,7 @@ Release trailer: https://youtu.be/b708a8nTjWY
 * Stronger bats deal more knockback and launch baseballs further.
 * Bats support most sword and bow enchantments.
 * Bats are slower and weaker than swords, but deal more knockback.
+* Dispensers will shoot baseballs and other throwables.
 
 ## Physics
 
@@ -78,16 +79,13 @@ Catcher’s gloves can be crafted simply with a bunch of leather, and one piece 
 </details>
  
 
-## Updates to 1.18 and 1.19 coming as soon as possible
+## Feel free to use in any modpacks, please link to the CurseForge download page and do not rehost the files.
 
 ## Possible (some day) future features
 
-Give baseballs a 50% chance of ricocheting towards another living being after hitting one, and then a 50% chance of that living entity being the player. So you need to be careful just throwing balls around, since one out of four times you could get a taste of your own medicine, unless you manage to dodge or land a combo hit of course.
-
-Support throwing more different vanilla items with unique behaviors (ink sacs for example).
-
-Add more new throwables (like a bomb for example).
-
-Port to fabric.
-
-If you’d like to thank me or incentivize me to do more modding, I’d like to shamelessly suggest considering pressing the little donate button in the top right :)
+* Give baseballs a 50% chance of ricocheting towards another living being after hitting one, and then a 50% chance of that living entity being the player. So you need to be careful just throwing balls around, since one out of four times you could get a taste of your own medicine, unless you manage to dodge or land a combo hit of course.
+* Support throwing more different vanilla items with unique behaviors (for example ink sacs, or maybe even blocks that get placed when they hit something).
+* Add more new throwables (like a bomb for example).
+* Add an Illager baseball player.
+* Handle hitting block edges properly, rather than treating them like flat sides
+* Port to fabric.
