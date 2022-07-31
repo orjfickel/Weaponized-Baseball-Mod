@@ -172,6 +172,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			this.Pickup = Pickup.DISALLOWED;
 		}
 		this.idleTime = ServerConfig.throwable_idle_time.get();
+
+        this.gameEvent(GameEvent.PROJECTILE_SHOOT, this.getOwner(), this.blockPosition());
 	}
 	
 	public void initProperties(Item item) {
@@ -743,6 +745,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		BlockState hitblockstate = this.level.getBlockState(blockPos);
 		Block blockhit = hitblockstate.getBlock();
 
+        this.gameEvent(GameEvent.PROJECTILE_LAND, this.getOwner());
+
 		// Play the impact sound
 		float speed = (float) prevvel.length();
 		float impactspeed = 0;
@@ -758,7 +762,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			break;
 		};
 		if (speed > 0.3F)
-			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
+			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
 		
 		if (!this.level.isClientSide) {
 			// If we hit a target block, trigger TargetBlock's arrow hit functionality with our mock arrow, otherwise call onProjectileHit regularly
@@ -815,6 +819,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	public boolean onEntityImpact(EntityHitResult result) {
 		if (net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, result))
 			return false;
+		
+        this.gameEvent(GameEvent.PROJECTILE_LAND, this.getOwner());
 		
 		Entity target = result.getEntity();
 		Vec3 velocity = this.getDeltaMovement();
@@ -909,7 +915,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	/** Adapted from {@link ThrowableItemProjectile#canHitEntity} because leftOwner couldn't be modified without calling tick() */
 	@Override
 	protected boolean canHitEntity(Entity entityIn) {// isAlive is only false when the entity has died or removed
-		if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
+        if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && entityIn.isPickable() && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
 			Entity owner = this.getOwner();
 			return owner == null || (this.leftOwner || entityIn != owner);
 		} else {

@@ -30,6 +30,7 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.Vec3;
 
@@ -44,7 +45,6 @@ public class BaseballBat extends SwordItem {
 
 	@Override
 	public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
-		boolean successHit = false;
 		if (!player.level.isClientSide() && entity.tickCount > 5) {
 			if (entity instanceof ThrowableItemProjectile) {
 				ThrowableItemProjectile throwableentity = (ThrowableItemProjectile) entity;
@@ -94,15 +94,13 @@ public class BaseballBat extends SwordItem {
 							this.random.nextDouble() * 0.0075D * (double)inaccuracy, 
 							this.random.nextDouble() * 0.0075D * (double)inaccuracy).scale((double)newvel.length()));
 				}
-	            successHit = true;
+
+                throwableentity.gameEvent(GameEvent.PROJECTILE_SHOOT, player);
+                //Reduce bat durability when hitting a ball
+                stack.hurtAndBreak(1, player, (consumedEntity) -> {
+                    consumedEntity.broadcastBreakEvent(EquipmentSlot.MAINHAND); // Broadcasts whenever this bat breaks
+                });
 			}
-		}
-		
-		if (successHit) {
-            //Reduce bat durability when hitting a ball
-            stack.hurtAndBreak(1, player, (consumedEntity) -> {
-	        	consumedEntity.broadcastBreakEvent(EquipmentSlot.MAINHAND); // Broadcasts whenever this bat breaks
-	        });
 		}
 		
 		return false;
