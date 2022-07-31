@@ -2,8 +2,10 @@ package blizzardfenix.webasemod.entity;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -70,6 +72,7 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.Direction.Axis;
 import net.minecraft.util.IndirectEntityDamageSource;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.ReuseableStream;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
@@ -77,6 +80,7 @@ import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
@@ -224,9 +228,12 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		Vector3d motionvec = this.getDeltaMovement();
 		if (!this.level.isClientSide) {
 			if ((this.isOnGround() || this.isInWater()) && motionvec.lengthSqr() < this.idleSpeedSqr) {
+				// If idle for long enough, destroy
 				if(this.tickCount > this.droptimer + this.idleTime) {
 					this.destroy();
 				}
+				// Reset the combo
+				this.comboDmg = 0;
 			} else {
 				this.droptimer = this.tickCount;
 			}
@@ -343,6 +350,11 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		Vector3d mot = this.getDeltaMovement();
 		Vector3d newpos = pos.add(mot);
 
+		BlockRayTraceResult blockres = this.level.clip(new RayTraceContext(pos, newpos, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this));
+		if (blockres.getType() != BlockRayTraceResult.Type.MISS) {
+			newpos = blockres.getLocation();
+		}
+
 		EntityRayTraceResult entityres = ProjectileHelper.getEntityHitResult(this.level, this, pos, newpos, this.getBoundingBox().expandTowards(mot).inflate(1.0D), (entityIn) -> {
 			return this.canHitEntity(entityIn);
 		});
@@ -364,21 +376,33 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				if (isThrowableBall) this.registerHit((ThrowableBallEntity) entity);
 				onEntityImpact(entityres);
 			}
+		} else if (blockres.getType() != BlockRayTraceResult.Type.MISS) {
+			// Since the ray trace will put the center of the ball as newpos inside of a block, we need to move it back a bit
+			Vector3d offsetHitPos = null;
+			switch(blockres.getDirection().getAxis()) {
+			case X:
+				offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/Math.abs(mot.x)));
+				break;
+			case Y:
+				offsetHitPos = newpos.subtract(mot.scale(this.getBbHeight()/Math.abs(mot.y))).subtract(0,this.getBbHeight()/2,0);
+				break;
+			case Z:
+				offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/Math.abs(mot.z)));
+				break;
+			};
+			this.setPos(offsetHitPos.x, offsetHitPos.y, offsetHitPos.z);
+			this.onBlockImpact(blockres, mot);
 		} else {
-			// Apply the movement in a block collision-safe way
-			this.move(MoverType.SELF, mot);
-			this.setDeltaMovement(mot);
+			// If both ray traces missed, do a final collision check with the bounding box
 			if(!this.level.isClientSide) markHurt();
-			this.blockDetect(pos, mot);
+			this.blockDetect(mot);
 		}
 	}
 		
 	/** Handles applying movement and collision detection with blocks. (Needs to do both because we need to move first to detect block collision).
 	 * */
 	protected void slowMove() {
-		
 		Vector3d velocity = this.getDeltaMovement();
-		Vector3d origpos = this.getCenterPositionVec();
 		boolean nomove = false;
 		
 		// If we are on the ground and not moving, do a simple raytrace to test if there is a block below us, in which case we can safely (and efficiently) remain in place.
@@ -397,9 +421,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		} 
 		
 		if (!nomove && velocity.lengthSqr() > this.epsilonSpeedSqr) {
-			this.move(MoverType.SELF, velocity);
-			this.setDeltaMovement(velocity);
-			this.blockDetect(origpos, velocity);
+			this.blockDetect(velocity);
 		}
 
 		// Do not handle further collision on the client or on lite mode
@@ -409,16 +431,16 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		// Handle entity collisions after the block collisions, since in order to detect a block collision we need to have already moved and actually hit a block.
 		this.boxCollideEntities();
 		IProfiler profiler = this.level.getProfiler();
-		profiler.push("boxcollidemove");//TODO:profile
+		profiler.push("boxcollidemove");
 		if (posCorrectionCount > 0) {
 			Vector3d posCorrection = this.posCorrectionCount > 0 ? this.totPosCorrection.scale(1/(float)this.posCorrectionCount) : Vector3d.ZERO;
 
 			boolean tempagainstXWall = this.againstXWall;
 			boolean tempagainstZWall = this.againstZWall;
 			boolean temponGround = this.onGround;
-			velocity = this.getDeltaMovement();
-			this.move(MoverType.SELF, posCorrection);
-			this.setDeltaMovement(velocity);
+			Vector3d allowedVec = collideBoundingBox(posCorrection, this.getBoundingBox(), this.level, ISelectionContext.of(this),  new ReuseableStream<>(Stream.empty()));
+			Vector3d newvec = this.position().add(allowedVec);
+			this.setPos(newvec.x, newvec.y, newvec.z);
 			this.againstXWall = tempagainstXWall;
 			this.againstZWall = tempagainstZWall;
 			this.onGround = temponGround;
@@ -427,18 +449,20 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	}
 	
 	/** Detect if we hit a block based on whether our (expected) movement was blocked */
-	void blockDetect(Vector3d origpos, Vector3d expmovement) {
+	void blockDetect(Vector3d expmovement) {
 		Vector3d velocity = this.getDeltaMovement();
-		
-		Vector3d allowedmotionvec = this.getCenterPositionVec().subtract(origpos);
+		Vector3d allowedmotionvec = collideBoundingBox(expmovement, this.getBoundingBox(), this.level, ISelectionContext.of(this),  new ReuseableStream<>(Stream.empty()));
 		
 		boolean xblock = (Math.round(expmovement.x*100) != Math.round(allowedmotionvec.x*100)) && expmovement.x != 0;
 		boolean yblock = ((Math.round(expmovement.y*100) < Math.round(allowedmotionvec.y*100)) && expmovement.y < 0) || 
-				((Math.round(expmovement.y*100) > Math.round(allowedmotionvec.y*100)) && expmovement.y > 0);//TODO: why not just use !=
+				((Math.round(expmovement.y*100) > Math.round(allowedmotionvec.y*100)) && expmovement.y > 0);
 		boolean zblock = (Math.round(expmovement.z*100) != Math.round(allowedmotionvec.z*100)) && expmovement.z != 0;
 		
 		Vector3d hitvec = null;
 		BlockRayTraceResult blockres = null;
+		
+		Vector3d newpos = this.position().add(allowedmotionvec);
+		this.setPos(newpos.x, newpos.y, newpos.z);
 		
 		if (!xblock && !yblock && !zblock) {
 			// If there is no collision, simply move as far as the expected movement.
@@ -466,7 +490,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		if (allowedmotionvec.lengthSqr() < this.epsilonSpeedSqr) {
 			allowedmotionvec = Vector3d.ZERO;
 		}
-		hitvec = origpos.add(allowedmotionvec);
+		hitvec = this.position().add(allowedmotionvec);
 
 		if (xblock) {
 			blockres = BallPhysicsHelper.computeTargetBlock(Axis.X, hitvec, expmovement, this.level, this.getDimensions(this.getPose()));
@@ -689,7 +713,9 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				// Then use totPosCorrection for unticked targets and move for missed targets.
 				Vector3d othertempmotionvec = entityIn.getDeltaMovement();
 				boolean targetOnGround = entityIn.isOnGround();
-			    entityIn.move(MoverType.SELF, otherposvec.subtract(otheroldposvec));//Currently takes up biggest performance hit
+				Vector3d newotherpos = entityIn.position().add(
+						collideBoundingBox( otherposvec.subtract(otheroldposvec), this.getBoundingBox(), this.level, ISelectionContext.of(this),  new ReuseableStream<>(Stream.empty())));
+				entityIn.setPos(newotherpos.x, newotherpos.y, newotherpos.z);
 			    entityIn.setOnGround(targetOnGround);
 		    	entityIn.setDeltaMovement(othertempmotionvec);
 			} else {
@@ -739,8 +765,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		if (speed > 0.3F)
 			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
 		
-		// Reset the combo
-		this.comboDmg = 0;
 		if (!this.level.isClientSide) {
 			// If we hit a target block, trigger TargetBlock's arrow hit functionality with our mock arrow, otherwise call onProjectileHit regularly
 			if (blockhit instanceof TargetBlock) {
@@ -750,7 +774,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				// If mob griefing is allowed, try to destroy an egg by mocking a player falling on it.
 				blockhit.fallOn(this.level, blockPos, level.players().get(0), impactspeed);
 			} else if ((blockhit instanceof AbstractGlassBlock || (blockhit instanceof PaneBlock && blockhit != Blocks.IRON_BARS))
-					&& this.mass >= 1.0F && random.nextFloat() * this.mass > 0.8F && ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
+					 && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * speed > 0.5F) {
 				this.level.destroyBlock(blockPos, false);
 				return false;
 			} else if (blockhit instanceof NoteBlock) {
@@ -814,8 +838,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		// If we're moving fast enough, try to hurt the target entity
 		if (speed > minDmgSpeed) {
 			float attackdmg = this.baseDmg;
-			if (!hitThrower) attackdmg += this.comboDmg;
-			if (attackdmg > 1) this.comboDmg += 4.0F;
+			if (!hitThrower) attackdmg += this.comboDmg; // Add combo damage but prevent hurting yourself too badly
 			attackdmg = (float) MathHelper.clamp(speed * attackdmg, 0.0D, Integer.MAX_VALUE);
 			// If the attackdmg is lower than the minimum damage then use probability to still deal the correct damage on average
 			int actualdmg = (attackdmg < 1F) ? (this.random.nextFloat() > attackdmg ? 0 : 1) : MathHelper.ceil(attackdmg);
@@ -823,6 +846,8 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			if (this.hitbybat && !hitThrower) {
 				long j = (long) this.random.nextInt(actualdmg / 2 + 2); // Same bonus as arrows
 				actualdmg = (int) Math.min(j + (long) actualdmg, Integer.MAX_VALUE);
+				
+				this.comboDmg += 3.0F; // Increase the combo damage for the next entity we hit
 			}
 			
 			Entity sourceEntity;

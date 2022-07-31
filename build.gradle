@@ -13,7 +13,7 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
 
-version = '1.16.5-1.0.3'
+version = '1.16.5-1.1.0'
 group = 'blizzardfenix.webasemod' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'webasemod'
 

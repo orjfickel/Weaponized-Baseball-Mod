@@ -59,6 +59,8 @@ public class HelperFunctions {
 			soundEvent = SoundEvents.EXPERIENCE_BOTTLE_THROW;
 		else if(item == Items.SPLASH_POTION)
 			soundEvent = SoundEvents.SPLASH_POTION_THROW;
+		else if(item == Items.LINGERING_POTION)
+			soundEvent = SoundEvents.LINGERING_POTION_THROW;
 		else
 			soundEvent = SoundEvents.EGG_THROW;
 		level.playSound((PlayerEntity) null, player.getX(), player.getY(), player.getZ(), soundEvent, SoundCategory.NEUTRAL, 0.5F,
@@ -95,7 +97,7 @@ public class HelperFunctions {
 				float speed = 	player.isCrouching() ? 0.3F : 
 								isBouncyBall ? bouncyBallEntity.throwSpeed : 
 								item == Items.EXPERIENCE_BOTTLE ? 0.7F : 
-								item == Items.SPLASH_POTION ? 0.5F : 
+								item == Items.SPLASH_POTION || item == Items.LINGERING_POTION ? 0.5F : 
 								1.5F;
 				throwableentity.shootFromRotation(player, player.xRot, player.yRot, 
 						item == Items.EXPERIENCE_BOTTLE ? -20.0F : 0.0F, speed, inaccuracy);
@@ -128,7 +130,7 @@ public class HelperFunctions {
 							itementity = new PickableEggEntity(level, player);
 						else if(item == Items.EXPERIENCE_BOTTLE)
 							itementity = new PickableExperienceBottleEntity(level, player);
-						else if(item == Items.SPLASH_POTION)
+						else if(item == Items.SPLASH_POTION || item == Items.LINGERING_POTION)
 							itementity = new PickablePotionEntity(level, player);
 						else
 							itementity = new PickableSnowballEntity(level, player);

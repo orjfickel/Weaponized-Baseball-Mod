@@ -377,8 +377,8 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		markHurt();
 		
 	    setDeltaMovement(shootvec.normalize().add(this.random.nextDouble() * 0.0075D * (double)inaccuracy, 
-	    		this.random.nextDouble() * 0.0075D * (double)inaccuracy, 
-	    		this.random.nextDouble() * 0.0075D * (double)inaccuracy).scale((double)shootvec.length()));
+	    		this.random.nextGaussian() * 0.0075D * (double)inaccuracy, 
+	    		this.random.nextGaussian() * 0.0075D * (double)inaccuracy).scale((double)shootvec.length()));
 	}
 
 	/**
