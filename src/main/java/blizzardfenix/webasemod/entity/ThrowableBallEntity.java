@@ -318,6 +318,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			this.slowMove(); // Also handles changing position
 			this.testInsideBlock();
 		}
+        this.checkInsideBlocks();
 
 		this.updateRotation(); 
 
@@ -381,13 +382,13 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			Vector3d offsetHitPos = null;
 			switch(blockres.getDirection().getAxis()) {
 			case X:
-				offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/Math.abs(mot.x)));
+                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.x))));
 				break;
 			case Y:
-				offsetHitPos = newpos.subtract(mot.scale(this.getBbHeight()/Math.abs(mot.y))).subtract(0,this.getBbHeight()/2,0);
+                offsetHitPos = newpos.subtract(mot.scale(this.getBbHeight()/(2*Math.abs(mot.y)))).subtract(0,this.getBbHeight()/2,0);
 				break;
 			case Z:
-				offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/Math.abs(mot.z)));
+                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.z))));
 				break;
 			};
 			this.setPos(offsetHitPos.x, offsetHitPos.y, offsetHitPos.z);
@@ -785,12 +786,10 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				hitblockstate.onProjectileHit(this.level, hitblockstate, result, this);
 	
 				// Check if we are inside of a button block, in which case use the mock arrow to press the button.
-				//BlockPos blockPos = new BlockPos(this.getCenterPositionVec());
 				BlockState thisblockstate = this.level.getBlockState(this.blockPosition());
 				Block thisblock = thisblockstate.getBlock();
 				if (thisblock instanceof AbstractButtonBlock) {
-					this.getMockArrow();					
-					((AbstractButtonBlock)thisblock).entityInside(thisblockstate, this.level, this.blockPosition(), this.mockArrow);
+					this.getMockArrow();
 				}
 			}
 		}
