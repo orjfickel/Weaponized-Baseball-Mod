@@ -3,14 +3,14 @@ package blizzardfenix.webasemod.init;
 import java.util.function.Supplier;
 
 import blizzardfenix.webasemod.BaseballMod;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 
 public class ModItemGroups {
-	public static final ItemGroup MOD_ITEM_GROUP = new ModItemGroup(BaseballMod.MODID, () -> new ItemStack(ModItems.BASIC_BASEBALL.get()));
+	public static final CreativeModeTab MOD_ITEM_GROUP = new ModItemGroup(BaseballMod.MODID, () -> new ItemStack(ModItems.BASIC_BASEBALL.get()));
 
 
-	public static class ModItemGroup extends ItemGroup {
+	public static class ModItemGroup extends CreativeModeTab {
 		private final Supplier<ItemStack> iconSupplier;
 
 		public ModItemGroup(final String name, final Supplier<ItemStack> iconSupplier) {

@@ -5,38 +5,38 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import blizzardfenix.webasemod.util.HelperFunctions;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.network.NetworkEvent;
 
 public class WebaseMessage {
-	private Hand hand;
-	private Vector3d shooterVelocity;
+	private InteractionHand hand;
+	private Vec3 shooterVelocity;
 
 	public WebaseMessage() {
 	}
 
-	public WebaseMessage(Hand hand, @Nullable Vector3d shooterVelocity) {
+	public WebaseMessage(InteractionHand hand, @Nullable Vec3 shooterVelocity) {
 		this.hand = hand;
 		this.shooterVelocity = shooterVelocity;
 	}
 
-	public static void encode(WebaseMessage message, PacketBuffer buffer) {
+	public static void encode(WebaseMessage message, FriendlyByteBuf buffer) {
 		buffer.writeEnum(message.hand);
 		buffer.writeFloat((float) message.shooterVelocity.x);
 		buffer.writeFloat((float) message.shooterVelocity.y);
 		buffer.writeFloat((float) message.shooterVelocity.z);
 	}
 
-	public static WebaseMessage decode(PacketBuffer buffer) {
-		return new WebaseMessage(buffer.readEnum(Hand.class), new Vector3d(buffer.readFloat(), buffer.readFloat(), buffer.readFloat()));
+	public static WebaseMessage decode(FriendlyByteBuf buffer) {
+		return new WebaseMessage(buffer.readEnum(InteractionHand.class), new Vec3(buffer.readFloat(), buffer.readFloat(), buffer.readFloat()));
 	}
 
 	public static void handle(WebaseMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
 		contextSupplier.get().enqueueWork(() -> {
-			ServerPlayerEntity player = contextSupplier.get().getSender();
+			ServerPlayer player = contextSupplier.get().getSender();
 			HelperFunctions.tryThrow(player.getCommandSenderWorld(), player, message.hand, message.shooterVelocity);
 		});
 		contextSupplier.get().setPacketHandled(true);

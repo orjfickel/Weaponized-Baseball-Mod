@@ -1,45 +1,47 @@
 package blizzardfenix.webasemod.entity;
 
 import blizzardfenix.webasemod.init.ModItems;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.SlimeBlock;
-import net.minecraft.block.material.Material;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.IRendersAsItem;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.monster.SlimeEntity;
-import net.minecraft.entity.passive.IronGolemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.EntityRayTraceResult;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.*;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.ItemSupplier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.PowderSnowBlock;
+import net.minecraft.world.level.block.SlimeBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Material;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.entity.IEntityAdditionalSpawnData;
 
 /** Adds bouncing logic (direction & speed) and handles being hit */
-public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAdditionalSpawnData , IRendersAsItem {
+public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAdditionalSpawnData , ItemSupplier {
 	/** Chance of bouncing towards a living entity */
 	public final float ricochetChance = 0.0F;//Turned off for now as shooting towards a target needs more tweaking than expected
 	public final double richochetRange = 50D;
 	/** Chance of, if bouncing towards a living entity, bouncing specifically towards the player, no matter how far away */
 	public final float bounceBackChance = 0.0F;//0.5F;
 	
-	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, World worldIn) {
+	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, Level worldIn) {
 		super(type, worldIn);
 	}
 
-	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, World worldIn, LivingEntity throwerIn) {
+	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, Level worldIn, LivingEntity throwerIn) {
 		super(type, worldIn, throwerIn);
 	}
 	
-	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, World worldIn, double x, double y, double z) {
+	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, Level worldIn, double x, double y, double z) {
 	    super(type, worldIn, x, y, z);
 	}
 	
@@ -58,7 +60,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 	 *  Handle the velocity correction of the block impact
 	 */
 	@Override
-	public boolean onBlockImpact(BlockRayTraceResult result, Vector3d prevvel) {
+	public boolean onBlockImpact(BlockHitResult result, Vec3 prevvel) {
 		if (!super.onBlockImpact(result, prevvel))
 			return false;
 
@@ -66,7 +68,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		if (speed == 0)
 			return false;
 		
-		Vector3d shootvec = Vector3d.ZERO;
+		Vec3 shootvec = Vec3.ZERO;
 		BlockPos blockPos = result.getBlockPos();
 		BlockState blockState = this.level.getBlockState(blockPos);
 		Block block = blockState.getBlock();
@@ -113,17 +115,17 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		
 		switch(axis) {
 		case X:
-			shootvec = new Vector3d(-prevvel.x*totalbounciness, prevvel.y*totalfriction, prevvel.z*totalfriction);
+			shootvec = new Vec3(-prevvel.x*totalbounciness, prevvel.y*totalfriction, prevvel.z*totalfriction);
 			break;
 		case Y:
 			if (prevvel.y <= 0) {
 				if (Math.round(prevvel.y*100) == 0) 
 					prevvel = prevvel.multiply(1,0,1);
 			}
-			shootvec = new Vector3d(prevvel.x*totalfriction, -prevvel.y*totalbounciness, prevvel.z*totalfriction);
+			shootvec = new Vec3(prevvel.x*totalfriction, -prevvel.y*totalbounciness, prevvel.z*totalfriction);
 			break;
 		case Z:
-			shootvec = new Vector3d(prevvel.x*totalfriction, prevvel.y*totalfriction, -prevvel.z*totalbounciness);
+			shootvec = new Vec3(prevvel.x*totalfriction, prevvel.y*totalfriction, -prevvel.z*totalbounciness);
 			break;
 		}
 		
@@ -132,7 +134,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 	}
 	
 	@Override
-	public boolean onEntityImpact(EntityRayTraceResult result) {
+	public boolean onEntityImpact(EntityHitResult result) {
 		boolean successAttack = super.onEntityImpact(result);
 
 		Entity target = result.getEntity();
@@ -140,24 +142,24 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		if (isBouncyBall && this.destroyChance == 1F)
 			return successAttack;
 		
-		Vector3d velocity = this.getDeltaMovement();
-		Vector3d targetvelocity = target.getDeltaMovement();
+		Vec3 velocity = this.getDeltaMovement();
+		Vec3 targetvelocity = target.getDeltaMovement();
 		
 		if (target.isOnGround())
 			targetvelocity = targetvelocity.multiply(1, 0, 1);
 		if (this.isOnGround())
 			velocity = velocity.multiply(1, 0, 1);
 
-		Vector3d posvec = this.getCenterPositionVec();
+		Vec3 posvec = this.getCenterPositionVec();
 
-		Vector3d otherposvec = BallPhysicsHelper.getEntityCapsulePos(target, posvec);
-	    Vector3d posdiff = posvec.subtract(otherposvec);
+		Vec3 otherposvec = BallPhysicsHelper.getEntityCapsulePos(target, posvec);
+	    Vec3 posdiff = posvec.subtract(otherposvec);
 
 	    // The normal vector from the target entity to this ball's position
-	    Vector3d normal = posdiff.normalize();
+	    Vec3 normal = posdiff.normalize();
 
 		// Calculate this object's motion relative to the target entity.
-		Vector3d relativemot = velocity.subtract(targetvelocity);
+		Vec3 relativemot = velocity.subtract(targetvelocity);
 		
 		// Relative speed along normal
 	    double vn = relativemot.dot(normal);
@@ -173,7 +175,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 //				// Chance of bouncing towards a living entity
 //				if (syncedrand.nextFloat() < ricochetChance) {
 //					// Shoot towards the player that threw the ball, or otherwise shoot towards the closest mob
-//					if (thrower instanceof PlayerEntity && syncedrand.nextFloat() < bounceBackChance && ((LivingEntity)thrower).canSee(this)) {
+//					if (thrower instanceof Player && syncedrand.nextFloat() < bounceBackChance && ((LivingEntity)thrower).canSee(this)) {
 //						bounceBall(thrower);
 //						return successAttack;
 //					} else {
@@ -208,25 +210,25 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
     
 		// Split the relative motion vector into a vector along the normal and a vector
 		// perpendicular to the normal. 
-		Vector3d newmotY = normal.scale(-1 * vn); // Assuming perfect elastic collision, apart from bounciness and friction
+		Vec3 newmotY = normal.scale(-1 * vn); // Assuming perfect elastic collision, apart from bounciness and friction
 		
 		// If you hit the target at an angle more than 90 degrees, you are moving away from from the target.
 	    if (vn > 0.001F) {
 	    	return false;
 	    }
 
-		Vector3d newmotXZ = relativemot.add(newmotY).reverse();
-		Vector3d impulse;
-		Vector3d newimpulse; // The new impulse/motion vector for this ball
-		Vector3d othernewimpulse; // The new impulse/motion vector for the target entity
+		Vec3 newmotXZ = relativemot.add(newmotY).reverse();
+		Vec3 impulse;
+		Vec3 newimpulse; // The new impulse/motion vector for this ball
+		Vec3 othernewimpulse; // The new impulse/motion vector for the target entity
 		BouncyBallEntity btarget = null;
 
 		float entitybounciness = 0.5F;
 		float entityfriction = 0.5F;
-		if (target instanceof IronGolemEntity) {
+		if (target instanceof IronGolem) {
 			entitybounciness = 0.8F;//TODO: test
 			entityfriction = 0.9F;
-		} else if (target instanceof SlimeEntity) {
+		} else if (target instanceof Slime) {
 				entitybounciness = 0.99F;
 		}
 		if (isBouncyBall) {
@@ -270,7 +272,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 			othernewimpulse = othernewimpulse.multiply(1, 0, 1);
 			if (!this.isOnGround())
 				newimpulse = newimpulse.subtract(0, othernewimpulse.y, 0);
-			else if (!isBouncyBall && !(target instanceof PlayerEntity) && velocity.lengthSqr() <= this.idleSpeedSqr && this.mass > 1.0F && target.position().y < posvec.y && relativemot.multiply(1,0,1).dot(normal) < 0) {
+			else if (!isBouncyBall && !(target instanceof Player) && velocity.lengthSqr() <= this.idleSpeedSqr && this.mass > 1.0F && target.position().y < posvec.y && relativemot.multiply(1,0,1).dot(normal) < 0) {
 				// If idle speed, heavy, the target's feet are below the ball's center and target is moving (horizontally) towards the ball, then make them jump over.
 				target.setDeltaMovement(target.getDeltaMovement().x, 0.4F, target.getDeltaMovement().z);
 			}
@@ -298,8 +300,8 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		}
 		
 		// If the new impulse is too small, just set it to 0 instead.
-		if (newimpulse.lengthSqr() < this.epsilonSpeedSqr) newimpulse = Vector3d.ZERO;
-		if (othernewimpulse.lengthSqr() < this.epsilonSpeedSqr) othernewimpulse = Vector3d.ZERO;
+		if (newimpulse.lengthSqr() < this.epsilonSpeedSqr) newimpulse = Vec3.ZERO;
+		if (othernewimpulse.lengthSqr() < this.epsilonSpeedSqr) othernewimpulse = Vec3.ZERO;
 
 		// Actually apply the new impulse
 		this.bounceBall(this.getDeltaMovement().add(newimpulse), 0);
@@ -309,7 +311,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 			btarget.bounceBall(btarget.getDeltaMovement().add(othernewimpulse), 0);
 		} else if (successAttack && target instanceof LivingEntity){
 			LivingEntity ltarget = (LivingEntity) target;
-			ltarget.hurtDir = (float)(MathHelper.atan2(-othernewimpulse.z, -othernewimpulse.x) * (double)(180F / (float)Math.PI) - (double)this.yRot);
+			ltarget.hurtDir = (float)(Mth.atan2(-othernewimpulse.z, -othernewimpulse.x) * (double)(180F / (float)Math.PI) - (double)this.getYRot());
 			ltarget.knockback((float) othernewimpulse.length()*1F, -othernewimpulse.x, -othernewimpulse.z);
 		} else {
 			target.setDeltaMovement(target.getDeltaMovement().add(othernewimpulse.x, othernewimpulse.y, othernewimpulse.z));
@@ -318,12 +320,12 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		if (successAttack) {
 			// Chance of getting destroyed
 			if (this.random.nextFloat() < this.destroyChance) { 
-				this.setDeltaMovement(Vector3d.ZERO);
-				this.destroy();
+				this.setDeltaMovement(Vec3.ZERO);
+				this.destroy(RemovalReason.KILLED);
 			}
 		} else if (this.destroyChance == 1F) { 
-			this.setDeltaMovement(Vector3d.ZERO);
-			this.destroy();
+			this.setDeltaMovement(Vec3.ZERO);
+			this.destroy(RemovalReason.KILLED);
 		}
 
 		return successAttack;
@@ -341,11 +343,11 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 //	    double zdir = nexttarget.getZ() - this.getZ();
 //
 //	    double dist = Math.sqrt(xdir * xdir + 0.04D * ydirplus * ydirplus * ydirplus + zdir * zdir -  0.04D * yplus*yplus*yplus) + 0.15D * ydir;
-//	    Vector3d shootvec = new Vector3d(xdir, ydir, zdir);
+//	    Vec3 shootvec = new Vec3(xdir, ydir, zdir);
 //	    double hordist = Math.sqrt(getHorizontalDistanceSqr(shootvec));
-//	    double xRot = -(MathHelper.atan2(shootvec.y, hordist) * 
+//	    double getXRot() = -(Mth.atan2(shootvec.y, hordist) * 
 //	    		(180D / Math.PI));
-//	    float yRot = (float) -(MathHelper.atan2(shootvec.x, shootvec.z) * (180D / Math.PI));
+//	    float getYRot() = (float) -(Mth.atan2(shootvec.x, shootvec.z) * (180D / Math.PI));
 //
 //	    double powdist = Math.pow(dist, 0.6D);
 //	    float speedscale = (float) Math.max(0.2D, 0.1475D * powdist + 0.03D);
@@ -354,31 +356,31 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 //	    // In principle, the ball is aimed at 45 degree angle if the target is at the same height position, otherwise converges to throwing straight. 
 //	    // On the other hand, distfrac makes sure that the ball is almost thrown straight if the target is close, but converges to throwing
 //	    // according to the above rule as the target moves further away.
-//		double anglediff = (90 - Math.abs(xRot));
-//	    float pitchrot = (float) ((xRot - 0.5D * (anglediff)) * (1.0D-distfrac) + xRot * distfrac);
-//	    LOGGER.debug("bounce target powdist" + powdist + " xRot " + xRot + " pitchrot " + pitchrot);
+//		double anglediff = (90 - Math.abs(getXRot()));
+//	    float pitchrot = (float) ((getXRot() - 0.5D * (anglediff)) * (1.0D-distfrac) + getXRot() * distfrac);
+//	    LOGGER.debug("bounce target powdist" + powdist + " getXRot() " + getXRot() + " pitchrot " + pitchrot);
 //	    
 //	    if (speedscale < 0 || Float.isNaN(speedscale)) {
 //	    	LOGGER.debug("BAD SPEEDSCALE " + speedscale);
 //	    	this.dropSelf();
 //	    	return;
 //	    }
-//		this.shootFromRotation(this.getOwner(), (float) pitchrot, yRot, 0.0F, speedscale, this.baseInaccuracy);
+//		this.shootFromRotation(this.getOwner(), (float) pitchrot, getYRot(), 0.0F, speedscale, this.baseInaccuracy);
 //	}
 	
-	public void hitBall(Vector3d shootvec, float inaccuracy) {
+	public void hitBall(Vec3 shootvec, float inaccuracy) {
 		this.bounceBall(shootvec, inaccuracy);
 	}
 
 	/**
 	    * Bounces/shoots the ball. Should only be called on the server.
 	*/
-	public void bounceBall(Vector3d shootvec, float inaccuracy) {
+	public void bounceBall(Vec3 shootvec, float inaccuracy) {
 		markHurt();
 		
 	    setDeltaMovement(shootvec.normalize().add(this.random.nextDouble() * 0.0075D * (double)inaccuracy, 
-	    		this.random.nextDouble() * 0.0075D * (double)inaccuracy, 
-	    		this.random.nextDouble() * 0.0075D * (double)inaccuracy).scale((double)shootvec.length()));
+	    		this.random.nextGaussian() * 0.0075D * (double)inaccuracy, 
+	    		this.random.nextGaussian() * 0.0075D * (double)inaccuracy).scale((double)shootvec.length()));
 	}
 
 	/**

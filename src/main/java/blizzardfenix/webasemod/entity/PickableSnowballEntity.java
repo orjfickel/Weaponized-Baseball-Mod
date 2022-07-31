@@ -1,25 +1,25 @@
 package blizzardfenix.webasemod.entity;
 
 import blizzardfenix.webasemod.init.ModEntityTypes;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.projectile.SnowballEntity;
-import net.minecraft.network.IPacket;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.Snowball;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.network.NetworkHooks;
 
-public class PickableSnowballEntity extends SnowballEntity {
+public class PickableSnowballEntity extends Snowball {
 
-	public PickableSnowballEntity(EntityType<? extends PickableSnowballEntity> entityType, World level) {
+	public PickableSnowballEntity(EntityType<? extends PickableSnowballEntity> entityType, Level level) {
 		super(entityType, level);
 	}
 
-	public PickableSnowballEntity(World level, LivingEntity player) {
+	public PickableSnowballEntity(Level level, LivingEntity player) {
 		this(level, player.getX(), player.getEyeY() - (double) 0.1F, player.getZ());
 		this.setOwner(player);
 	}
 
-	public PickableSnowballEntity(World level, double x, double y, double z) {
+	public PickableSnowballEntity(Level level, double x, double y, double z) {
 		this(ModEntityTypes.PICKABLE_SNOWBALL_ENTITY.get(), level);
 		this.setPos(x, y, z);
 	}
@@ -31,7 +31,7 @@ public class PickableSnowballEntity extends SnowballEntity {
 
 //	/** Necessary for rendering */
 	@Override
-	public IPacket<?> getAddEntityPacket() {
+	public Packet<?> getAddEntityPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 }

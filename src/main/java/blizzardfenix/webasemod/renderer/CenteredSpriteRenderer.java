@@ -1,32 +1,35 @@
 package blizzardfenix.webasemod.renderer;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.entity.SpriteRenderer;
-import net.minecraft.client.renderer.model.ItemCameraTransforms;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Vector3f;
+
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.IRendersAsItem;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.ItemSupplier;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public class CenteredSpriteRenderer<T extends Entity & IRendersAsItem> extends SpriteRenderer<T> {
-	protected final net.minecraft.client.renderer.ItemRenderer itemRenderer;
+public class CenteredSpriteRenderer<T extends Entity & ItemSupplier> extends ThrownItemRenderer<T> {
+	protected final ItemRenderer itemRenderer;
 	protected final float scale;
 	protected final float offset;
 
-	public CenteredSpriteRenderer(EntityRendererManager manager, net.minecraft.client.renderer.ItemRenderer itemRenderer, float offset, float scale,
+	public CenteredSpriteRenderer(EntityRendererProvider.Context manager, ItemRenderer itemRenderer, float offset, float scale,
 			boolean fullBright) {
-		super(manager, itemRenderer, scale, fullBright);
-		this.itemRenderer = itemRenderer;
+		super(manager, scale, fullBright);
+	    this.itemRenderer = manager.getItemRenderer();
 		this.scale = scale;
 		this.offset = offset;
 	}
 
-	public CenteredSpriteRenderer(EntityRendererManager manager, net.minecraft.client.renderer.ItemRenderer itemRenderer) {
+	public CenteredSpriteRenderer(EntityRendererProvider.Context manager, ItemRenderer itemRenderer) {
 		this(manager, itemRenderer, 0.0F, 1.0F, false);
 	}
 
@@ -34,7 +37,7 @@ public class CenteredSpriteRenderer<T extends Entity & IRendersAsItem> extends S
 	 * Adapted from {@link SpriteRenderer.render} in order to be able to insert the translations in between.
 	 */
 	@Override
-	public void render(T entity, float number1, float number2, MatrixStack matrixStack, IRenderTypeBuffer renderBuffer, int number3) {
+	public void render(T entity, float number1, float number2, PoseStack matrixStack, MultiBufferSource renderBuffer, int number3) {
 		if (entity.tickCount >= 2 || !(this.entityRenderDispatcher.camera.getEntity().distanceToSqr(entity) < 12.25D)) {
 			matrixStack.pushPose();
 			matrixStack.scale(this.scale, this.scale, this.scale);
@@ -44,8 +47,8 @@ public class CenteredSpriteRenderer<T extends Entity & IRendersAsItem> extends S
 			matrixStack.mulPose(Vector3f.YP.rotationDegrees(180.0F));
 			// Translate it along the coordinate system that looks at the camera to correct when viewing from the top or bottom
 			matrixStack.translate(0, -0.125 + this.offset, 0);
-			this.itemRenderer.renderStatic(entity.getItem(), ItemCameraTransforms.TransformType.GROUND, number3, OverlayTexture.NO_OVERLAY, matrixStack,
-					renderBuffer);
+			this.itemRenderer.renderStatic(entity.getItem(), ItemTransforms.TransformType.GROUND, number3, OverlayTexture.NO_OVERLAY, matrixStack,
+					renderBuffer, entity.getId());
 			matrixStack.popPose();
 			// We cannot call super.super so we must create a separate method to do it ourselves
 			superEntityRender(entity, number1, number2, matrixStack, renderBuffer, number3);
@@ -63,7 +66,7 @@ public class CenteredSpriteRenderer<T extends Entity & IRendersAsItem> extends S
 	 * @param renderBuffer
 	 * @param number3
 	 */
-	public void superEntityRender(T entity, float number1, float number2, MatrixStack matrixStack, IRenderTypeBuffer renderBuffer, int number3) {
+	public void superEntityRender(T entity, float number1, float number2, PoseStack matrixStack, MultiBufferSource renderBuffer, int number3) {
 		net.minecraftforge.client.event.RenderNameplateEvent renderNameplateEvent = new net.minecraftforge.client.event.RenderNameplateEvent(entity,
 				entity.getDisplayName(), this, matrixStack, renderBuffer, number3, number2);
 		net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(renderNameplateEvent);

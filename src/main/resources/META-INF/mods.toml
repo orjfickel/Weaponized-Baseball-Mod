@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[36,)"
+loaderVersion="[40,)"
 license="LGPLv3"
 #issueTrackerURL=""
 showAsResourcePack=false
@@ -18,12 +18,12 @@ showAsResourcePack=false
 	[[dependencies.webasemod]]
 		modId="forge"
 		mandatory=true
-		versionRange="[36,)"
+		versionRange="[40,)"
 		ordering="NONE"
 		side="BOTH"
 	[[dependencies.webasemod]]
 		modId="minecraft"
 		mandatory=true
-		versionRange="[1.16.5,1.17)"
+		versionRange="[1.18.2,1.19)"
 		ordering="NONE"
 		side="BOTH"

@@ -2,6 +2,7 @@ package blizzardfenix.webasemod.entity;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,80 +18,83 @@ import blizzardfenix.webasemod.init.ModItems;
 import blizzardfenix.webasemod.init.ThrowableProperties;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import blizzardfenix.webasemod.util.Settings;
-import net.minecraft.block.AbstractButtonBlock;
-import net.minecraft.block.AbstractGlassBlock;
-import net.minecraft.block.AbstractPlantBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BushBlock;
-import net.minecraft.block.CactusBlock;
-import net.minecraft.block.NoteBlock;
-import net.minecraft.block.PaneBlock;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.TargetBlock;
-import net.minecraft.block.TurtleEggBlock;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MoverType;
-import net.minecraft.entity.boss.WitherEntity;
-import net.minecraft.entity.item.minecart.TNTMinecartEntity;
-import net.minecraft.entity.monster.ShulkerEntity;
-import net.minecraft.entity.passive.WolfEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity.PickupStatus;
-import net.minecraft.entity.projectile.ProjectileHelper;
-import net.minecraft.entity.projectile.ProjectileItemEntity;
-import net.minecraft.entity.projectile.TridentEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.TieredItem;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.network.play.server.SCollectItemPacket;
-import net.minecraft.particles.IParticleData;
-import net.minecraft.particles.ItemParticleData;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.profiler.IProfiler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.ITagCollection;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Direction.Axis;
-import net.minecraft.util.IndirectEntityDamageSource;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.EntityRayTraceResult;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.util.Mth;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.IndirectEntityDamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.monster.Shulker;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.AbstractArrow.Pickup;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.entity.vehicle.MinecartTNT;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AbstractGlassBlock;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.ButtonBlock;
+import net.minecraft.world.level.block.CactusBlock;
+import net.minecraft.world.level.block.GrowingPlantBlock;
+import net.minecraft.world.level.block.IronBarsBlock;
+import net.minecraft.world.level.block.NoteBlock;
+import net.minecraft.world.level.block.PowderSnowBlock;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.TargetBlock;
+import net.minecraft.world.level.block.TurtleEggBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.entity.IEntityAdditionalSpawnData;
 import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraftforge.network.NetworkHooks;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.tags.ITagManager;
 
 // An item projectile that collides with blocks and entities, only lacks the bouncing logic
-public abstract class ThrowableBallEntity extends ProjectileItemEntity implements IEntityAdditionalSpawnData {
-	private static final DataParameter<Byte> BOOLS = EntityDataManager.defineId(ThrowableBallEntity.class, DataSerializers.BYTE);
+public abstract class ThrowableBallEntity extends ThrowableItemProjectile implements IEntityAdditionalSpawnData {
+	private static final EntityDataAccessor<Byte> BOOLS = SynchedEntityData.defineId(ThrowableBallEntity.class, EntityDataSerializers.BYTE);
 	public UUID[] ballEntityHits; // All the ids of entities that were collided with during the current tick.
 	// There can be 'holes' in this array when another ball handles the collisions with this ball.
 	private int ballEntityHitsIndex = 0;
@@ -102,7 +106,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	public float comboDmg = 0;
 	protected boolean leftOwner;
 	
-	// Not very memory efficient but to prevent having to copy paste all the minecraft code that only executes for instances of AbstractArrowEntity
+	// Not very memory efficient but to prevent having to copy paste all the minecraft code that only executes for instances of AbstractArrow
 	private UUID arrowId;
 	private MockArrow mockArrow;
 
@@ -132,28 +136,29 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	final float idleSpeed = 0.05F;
 	final float idleSpeedSqr = idleSpeed*idleSpeed;
 	final float epsilonSpeedSqr = 1E-5F;
+	final float fastmoveSpeedSqr = 0.2F*0.2F;
 	public boolean againstXWall = false;
 	public boolean againstZWall = false;
-	protected Vector3d totPosCorrection = Vector3d.ZERO;
+	protected Vec3 totPosCorrection = Vec3.ZERO;
 	protected int posCorrectionCount = 0;
-	protected Vector3d stuckSpeedOverride = Vector3d.ZERO;
+	protected Vec3 stuckSpeedOverride = Vec3.ZERO;
 	
 	protected Logger LOGGER;
 	public boolean tracking; // Debug variable to select individual balls for debugging
-	public PickupStatus pickupStatus;
+	public Pickup Pickup;
 	
 	/** Never use this for the first time spawning of an entity, as parameters will be uninitialised */
-	public ThrowableBallEntity(EntityType<? extends ThrowableBallEntity> type, World worldIn) {
+	public ThrowableBallEntity(EntityType<? extends ThrowableBallEntity> type, Level worldIn) {
 		super(type,worldIn);
 		setup();
 	}
 
-	public ThrowableBallEntity(EntityType<? extends ThrowableBallEntity> type, World worldIn, LivingEntity throwerIn) {
+	public ThrowableBallEntity(EntityType<? extends ThrowableBallEntity> type, Level worldIn, LivingEntity throwerIn) {
 	    super(type, throwerIn, worldIn);
 		setup();
 	}
 	
-	public ThrowableBallEntity(EntityType<? extends ThrowableBallEntity> type, World worldIn, double x, double y, double z) {
+	public ThrowableBallEntity(EntityType<? extends ThrowableBallEntity> type, Level worldIn, double x, double y, double z) {
 		super(type, x, y, z, worldIn);
 	    setup();
 	}
@@ -163,15 +168,16 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		this.setInvulnerable(false);
 		this.maxBallCramming = this.level.getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
 		this.ballEntityHits = new UUID[this.maxBallCramming];
-		if (this.pickupStatus == null) {
-			this.pickupStatus = PickupStatus.DISALLOWED;
+		if (this.Pickup == null) {
+			this.Pickup = Pickup.DISALLOWED;
 		}
 		this.idleTime = ServerConfig.throwable_idle_time.get();
 	}
 	
 	public void initProperties(Item item) {
 		ThrowableProperties properties;
-		ITagCollection<Item> tags = ItemTags.getAllTags();
+		
+		ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
 		if (item == ModItems.BASIC_BASEBALL.get())
 			properties = ModEntityTypes.BASEBALL_PROPERTIES;
 		else if (item == ModItems.DIRTBALL.get())
@@ -184,11 +190,11 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			properties = ModEntityTypes.DIAMOND_PROPERTIES;
 		else if (item == Items.EMERALD)
 			properties = ModEntityTypes.EMERALD_PROPERTIES;
-		else if (tags.getTag(new ResourceLocation("forge","ingots")).contains(item) && item != Items.BRICK)
+		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","ingots"))).contains(item) && item != Items.BRICK)
 			properties = ModEntityTypes.INGOT_PROPERTIES;
-		else if (tags.getTag(new ResourceLocation("minecraft","coals")).contains(item))
+		else if (tags.getTag(tags.createTagKey(new ResourceLocation("minecraft","coals"))).contains(item))
 			properties = ModEntityTypes.COAL_PROPERTIES;
-		else if (tags.getTag(new ResourceLocation("forge","nuggets")).contains(item))
+		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(item))
 			properties = ModEntityTypes.NUGGET_PROPERTIES;
 		else if (item == Items.TURTLE_EGG)
 			properties = ModEntityTypes.EGG_PROPERTIES;
@@ -221,12 +227,15 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		if (this.baseDmg == -1)
 			this.initProperties(this.getItem().getItem());
 		
-		Vector3d motionvec = this.getDeltaMovement();
+		Vec3 motionvec = this.getDeltaMovement();
 		if (!this.level.isClientSide) {
 			if ((this.isOnGround() || this.isInWater()) && motionvec.lengthSqr() < this.idleSpeedSqr) {
+                // If idle for long enough, destroy
 				if(this.tickCount > this.droptimer + this.idleTime) {
-					this.destroy();
+					this.destroy(RemovalReason.DISCARDED);
 				}
+                // Reset the combo
+                this.comboDmg = 0;
 			} else {
 				this.droptimer = this.tickCount;
 			}
@@ -237,7 +246,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		}
 		
 		if (!this.level.isClientSide) { // Copied from Entity.Tick()
-			this.setSharedFlag(6, this.isGlowing());
+			this.setSharedFlag(6, this.isCurrentlyGlowing());
 		}
 		this.baseTick();
 	      
@@ -255,7 +264,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		if (Math.abs(motz) < 1e-5D) {
 			motz = 0.0D;
 		}
-		motionvec = new Vector3d(motx,moty,motz);
+		motionvec = new Vec3(motx,moty,motz);
 				
 		this.throwableTick();
 	}
@@ -267,7 +276,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		Arrays.fill(this.ballEntityHits, null); // Reset since we haven't detected any hits in this tick yet.
 		this.ballEntityHitsIndex = 0;
 		
-		Vector3d velocity = this.getDeltaMovement();
+		Vec3 velocity = this.getDeltaMovement();
 		// Apply gravity
 		if (!this.isNoGravity()) { 
 			velocity = velocity.subtract(0,this.getGravity(),0);
@@ -275,12 +284,12 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		// Add drag from things like webs
 		if (this.stuckSpeedOverride.lengthSqr() > this.epsilonSpeedSqr) {
 			velocity = velocity.multiply(this.stuckSpeedOverride);
-			this.stuckSpeedOverride = Vector3d.ZERO;
+			this.stuckSpeedOverride = Vec3.ZERO;
 		}
 		float drag;
 		if (this.isInWater()) {
 			// Add buoyancy
-			velocity = new Vector3d(velocity.x, velocity.y + (this.getFluidHeight(FluidTags.WATER) < 0.6F ? 
+			velocity = new Vec3(velocity.x, velocity.y + (this.getFluidHeight(FluidTags.WATER) < 0.6F ? 
 	        		(this.getFluidHeight(FluidTags.WATER) < 0.35F ? 
 	        				(this.getFluidHeight(FluidTags.WATER) < 0.25F ? 0.029 : 0.03) : 0.031) : 0.05), 
 					velocity.z);
@@ -305,16 +314,17 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		velocity = velocity.scale((double) drag);
 		this.setDeltaMovement(velocity);
 
-		if (velocity.lengthSqr() > 0.2*0.2) {
+		if (velocity.lengthSqr() > this.fastmoveSpeedSqr) {
 			this.fastMove();
 		} else {
 			this.slowMove(); // Also handles changing position
 			this.testInsideBlock();
 		}
+        this.tryCheckInsideBlocks();
 
 		this.updateRotation(); 
 
-		this.totPosCorrection = Vector3d.ZERO;
+		this.totPosCorrection = Vec3.ZERO;
 		this.posCorrectionCount = 0;
 	}
 	
@@ -337,13 +347,18 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		this.ballEntityHits[this.ballEntityHitsIndex++] = entity.getUUID();
 	}
 	
-	/** Do collision detection with ray traces, then apply movement */
+	/** Do entity collision detection with ray traces, then apply movement */
 	protected void fastMove() {
-		Vector3d pos = this.getCenterPositionVec();
-		Vector3d mot = this.getDeltaMovement();
-		Vector3d newpos = pos.add(mot);
+		Vec3 pos = this.getCenterPositionVec();
+		Vec3 mot = this.getDeltaMovement();
+		Vec3 newpos = pos.add(mot);
+		
+		BlockHitResult blockres = this.level.clip(new ClipContext(this.getCenterPositionVec(), newpos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+		if (blockres.getType() != BlockHitResult.Type.MISS) {
+			newpos = blockres.getLocation();
+		}
 
-		EntityRayTraceResult entityres = ProjectileHelper.getEntityHitResult(this.level, this, pos, newpos, this.getBoundingBox().expandTowards(mot).inflate(1.0D), (entityIn) -> {
+		EntityHitResult entityres = ProjectileUtil.getEntityHitResult(this.level, this, pos, newpos, this.getBoundingBox().expandTowards(mot).inflate(1.0D), (entityIn) -> {
 			return this.canHitEntity(entityIn);
 		});
 
@@ -357,49 +372,59 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		}
 		
 		if (entityhit) {
-			Vector3d expmovement = mot.scale(0.4F); // A very very rough estimation of where along the motion trajectory the ball actually hits the entity
-			this.move(MoverType.SELF, expmovement);
+			Vec3 expmovement = mot.scale(0.4F); // A very very rough estimation of where along the motion trajectory the ball actually hits the entity
+			this.setPos(this.position().add(expmovement));
 			this.setDeltaMovement(mot);
 			if (!this.level.isClientSide) {
 				if (isThrowableBall) this.registerHit((ThrowableBallEntity) entity);
 				onEntityImpact(entityres);
 			}
+		} else if (blockres.getType() != BlockHitResult.Type.MISS) {
+            // Since the ray trace will put the center of the ball as newpos inside of a block, we need to move it back a bit
+            Vec3 offsetHitPos = null;
+            switch(blockres.getDirection().getAxis()) {
+            case X:
+                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.x))));
+                break;
+            case Y:
+                offsetHitPos = newpos.subtract(mot.scale(this.getBbHeight()/(2*Math.abs(mot.y)))).subtract(0,this.getBbHeight()/2,0);
+                break;
+            case Z:
+                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.z))));
+                break;
+            };
+            this.setPos(offsetHitPos.x, offsetHitPos.y, offsetHitPos.z);
+			this.onBlockImpact(blockres, mot);
 		} else {
-			// Apply the movement in a block collision-safe way
-			this.move(MoverType.SELF, mot);
-			this.setDeltaMovement(mot);
+			// If both ray traces missed, do a final collision check with the bounding box
 			if(!this.level.isClientSide) markHurt();
-			this.blockDetect(pos, mot);
+			this.blockDetect(mot);
 		}
 	}
 		
 	/** Handles applying movement and collision detection with blocks. (Needs to do both because we need to move first to detect block collision).
 	 * */
-	protected void slowMove() {
-		
-		Vector3d velocity = this.getDeltaMovement();
-		Vector3d origpos = this.getCenterPositionVec();
+	protected void slowMove() {		
+		Vec3 velocity = this.getDeltaMovement();
 		boolean nomove = false;
 		
 		// If we are on the ground and not moving, do a simple raytrace to test if there is a block below us, in which case we can safely (and efficiently) remain in place.
 		if (this.isOnGround() && this.isIdle()) {
 			if (!this.level.isClientSide) {
-				Vector3d pos = this.getCenterPositionVec();
-				Vector3d newpos = pos.subtract(0,0.5F,0);
-				BlockRayTraceResult blockres = this.level.clip(new RayTraceContext(pos, newpos, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this));
-				nomove = blockres.getType() != RayTraceResult.Type.MISS;
+				Vec3 pos = this.getCenterPositionVec();
+				Vec3 newpos = pos.subtract(0,0.5F,0);
+				BlockHitResult blockres = this.level.clip(new ClipContext(pos, newpos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+				nomove = blockres.getType() != BlockHitResult.Type.MISS;
 				if (nomove)
-					this.setDeltaMovement(Vector3d.ZERO);
+					this.setDeltaMovement(Vec3.ZERO);
 			} else {
 				nomove = true;
-				this.setDeltaMovement(Vector3d.ZERO);
+				this.setDeltaMovement(Vec3.ZERO);
 			}
 		} 
 		
 		if (!nomove && velocity.lengthSqr() > this.epsilonSpeedSqr) {
-			this.move(MoverType.SELF, velocity);
-			this.setDeltaMovement(velocity);
-			this.blockDetect(origpos, velocity);
+			this.blockDetect(velocity);
 		}
 
 		// Do not handle further collision on the client or on lite mode
@@ -408,39 +433,31 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 
 		// Handle entity collisions after the block collisions, since in order to detect a block collision we need to have already moved and actually hit a block.
 		this.boxCollideEntities();
-		IProfiler profiler = this.level.getProfiler();
-		profiler.push("boxcollidemove");//TODO:profile
+		ProfilerFiller profiler = this.level.getProfiler();
+		profiler.push("boxcollidemove");
 		if (posCorrectionCount > 0) {
-			Vector3d posCorrection = this.posCorrectionCount > 0 ? this.totPosCorrection.scale(1/(float)this.posCorrectionCount) : Vector3d.ZERO;
-
-			boolean tempagainstXWall = this.againstXWall;
-			boolean tempagainstZWall = this.againstZWall;
-			boolean temponGround = this.onGround;
-			velocity = this.getDeltaMovement();
-			this.move(MoverType.SELF, posCorrection);
-			this.setDeltaMovement(velocity);
-			this.againstXWall = tempagainstXWall;
-			this.againstZWall = tempagainstZWall;
-			this.onGround = temponGround;
+			Vec3 posCorrection = this.posCorrectionCount > 0 ? this.totPosCorrection.scale(1/(float)this.posCorrectionCount) : Vec3.ZERO;
+			Vec3 allowedVec = collideBoundingBox(this, posCorrection, this.getBoundingBox(), this.level, List.of());
+			this.setPos(this.position().add(allowedVec));
 		}
 		profiler.pop();
 	}
 	
 	/** Detect if we hit a block based on whether our (expected) movement was blocked */
-	void blockDetect(Vector3d origpos, Vector3d expmovement) {
-		Vector3d velocity = this.getDeltaMovement();
-		
-		Vector3d allowedmotionvec = this.getCenterPositionVec().subtract(origpos);
+	void blockDetect(Vec3 expmovement) {
+		Vec3 velocity = this.getDeltaMovement();
+		Vec3 allowedmotionvec = collideBoundingBox(this, expmovement, this.getBoundingBox(), this.level, List.of());
 		
 		boolean xblock = (Math.round(expmovement.x*100) != Math.round(allowedmotionvec.x*100)) && expmovement.x != 0;
 		boolean yblock = ((Math.round(expmovement.y*100) < Math.round(allowedmotionvec.y*100)) && expmovement.y < 0) || 
-				((Math.round(expmovement.y*100) > Math.round(allowedmotionvec.y*100)) && expmovement.y > 0);//TODO: why not just use !=
+				((Math.round(expmovement.y*100) > Math.round(allowedmotionvec.y*100)) && expmovement.y > 0);
 		boolean zblock = (Math.round(expmovement.z*100) != Math.round(allowedmotionvec.z*100)) && expmovement.z != 0;
 		
-		Vector3d hitvec = null;
-		BlockRayTraceResult blockres = null;
+		Vec3 hitpos = null;
+		BlockHitResult blockres = null;
+		this.setPos(this.position().add(allowedmotionvec));
 		
-		if (!xblock && !yblock && !zblock) {
+		if (!xblock && !yblock && !zblock) {			
 			// If there is no collision, simply move as far as the expected movement.
 			if (expmovement.x != 0)
 				this.againstXWall = false;
@@ -464,20 +481,21 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 													  allowedmotionvec.z/expmovement.z);
 		// If the allowed movement is small enough, just set it to zero.
 		if (allowedmotionvec.lengthSqr() < this.epsilonSpeedSqr) {
-			allowedmotionvec = Vector3d.ZERO;
+			allowedmotionvec = Vec3.ZERO;
 		}
-		hitvec = origpos.add(allowedmotionvec);
+		hitpos = this.position().add(allowedmotionvec);
 
 		if (xblock) {
-			blockres = BallPhysicsHelper.computeTargetBlock(Axis.X, hitvec, expmovement, this.level, this.getDimensions(this.getPose()));
-			onBlockImpact(blockres, velocity);
+			blockres = BallPhysicsHelper.computeTargetBlock(Axis.X, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
 		}
 		if (yblock) {
-			blockres = BallPhysicsHelper.computeTargetBlock(Axis.Y, hitvec, expmovement, this.level, this.getDimensions(this.getPose()));
-			onBlockImpact(blockres, velocity);
+			blockres = BallPhysicsHelper.computeTargetBlock(Axis.Y, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
 		}
 		if (zblock) {
-			blockres = BallPhysicsHelper.computeTargetBlock(Axis.Z, hitvec, expmovement, this.level, this.getDimensions(this.getPose()));
+			blockres = BallPhysicsHelper.computeTargetBlock(Axis.Z, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
+		}		
+		
+		if (xblock || yblock || zblock) {
 			onBlockImpact(blockres, velocity);
 		}
 	}
@@ -487,7 +505,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	 * Adapted from LivingEntity.collideWithNearbyEntities() */
 	protected boolean boxCollideEntities() {
 		boolean collisiondetected = false;
-		AxisAlignedBB aabb = this.getBoundingBox();
+		AABB aabb = this.getBoundingBox();
 	    Set<Entity> entitySet = new HashSet<Entity>(this.level.getEntities(this, aabb, (input) -> {
 			return this.canHitEntity(input);
 		}));
@@ -504,7 +522,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				}
 
 				if (entityCount > maxCramCount - 1) {
-					this.destroy();
+					this.destroy(RemovalReason.DISCARDED);
 				}
 			}
 
@@ -512,10 +530,10 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				// If the target is also a throwable ball, handle collision like a sphere rather than the rectangular bounding box;
 				if (entity instanceof ThrowableBallEntity) {
 					ThrowableBallEntity btarget = ((ThrowableBallEntity) entity);
-					Vector3d velocity = this.getDeltaMovement();
+					Vec3 velocity = this.getDeltaMovement();
 					float speed = (float) velocity.length();
-					Vector3d posvec = this.getCenterPositionVec();
-					Vector3d targetposvec = btarget.getCenterPositionVec();
+					Vec3 posvec = this.getCenterPositionVec();
+					Vec3 targetposvec = btarget.getCenterPositionVec();
 					
 					// If the ball is not going too fast, ignore outside of sphere
 					// Also make sure we only handle this collision in 1 of the balls.
@@ -533,7 +551,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 						// Make sure there is no overlap between the entities
 						this.posCorrectionEntity(entity);
 
-						onEntityImpact(new EntityRayTraceResult(entity));
+						onEntityImpact(new EntityHitResult(entity));
 					}
 				} else {
 					collisiondetected = true;
@@ -541,7 +559,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 						return true;
 					// Make sure there is no overlap between the entities
 					this.posCorrectionEntity(entity);
-					onEntityImpact(new EntityRayTraceResult(entity));
+					onEntityImpact(new EntityHitResult(entity));
 				}
 			}
 		}
@@ -549,8 +567,10 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	}
 		
 	protected void testInsideBlock() {
-		if (this.level.getBlockState(this.blockPosition()).isCollisionShapeFullBlock(this.level, this.blockPosition())) {
-			this.moveTowardsClosestSpace(this.position().x,this.position().y,this.position().z);
+		Vec3 centerposition = this.position();
+		BlockPos blockpos = new BlockPos(centerposition);
+		if (this.level.getBlockState(blockpos).isCollisionShapeFullBlock(this.level, blockpos)) {
+			this.moveTowardsClosestSpace(centerposition.x,centerposition.y,centerposition.z);
 		}
 	}
 
@@ -559,7 +579,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	 * Adapted from {@link Entity#push} from 1.15 to include pushing in the y axis as well.
 	 */
 	public void posCorrectionEntity(Entity entityIn) {
-		IProfiler profiler = this.level.getProfiler();
+		ProfilerFiller profiler = this.level.getProfiler();
 		profiler.push("poscorrection");
 		if (!entityIn.noPhysics && !this.noPhysics) {
 	
@@ -571,19 +591,19 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		    float im1 = this.mass; 
 		    float im2 = 25;
 	
-			Vector3d posvec = this.getCenterPositionVec();
-			Vector3d otherposvec = BallPhysicsHelper.getEntityCapsulePos(entityIn, posvec);
-			Vector3d oldposvec = posvec;
-			Vector3d otheroldposvec = otherposvec;
-			Vector3d diff;
-			Vector3d thisdiff;
-			Vector3d otherdiff;
+			Vec3 posvec = this.getCenterPositionVec();
+			Vec3 otherposvec = BallPhysicsHelper.getEntityCapsulePos(entityIn, posvec);
+			Vec3 oldposvec = posvec;
+			Vec3 otheroldposvec = otherposvec;
+			Vec3 diff;
+			Vec3 thisdiff;
+			Vec3 otherdiff;
 			// Sphere on sphere collision
 			diff = posvec.subtract(otherposvec);
 			
 		    double dist = diff.length();
 		    if (dist == 0) {// If they have the exact same positions somehow, still allow seperating them.
-		    	diff = new Vector3d(0.01,0.01,0.01); 
+		    	diff = new Vec3(0.01,0.01,0.01); 
 		    	dist = diff.length();
 		    }
 
@@ -687,13 +707,14 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				//TODO: alternative is to also register whenever a ball tests for collision with another but concludes that there is no collision.
 				// That way we can still use totPosCorrection if we know that the target didn't miss this collision but simply hasn't been ticked yet.
 				// Then use totPosCorrection for unticked targets and move for missed targets.
-				Vector3d othertempmotionvec = entityIn.getDeltaMovement();
+				Vec3 othertempmotionvec = entityIn.getDeltaMovement();
 				boolean targetOnGround = entityIn.isOnGround();
-			    entityIn.move(MoverType.SELF, otherposvec.subtract(otheroldposvec));//Currently takes up biggest performance hit
+				Vec3 allowedVec = collideBoundingBox(entityIn, otherposvec.subtract(otheroldposvec), entityIn.getBoundingBox(), entityIn.level, List.of());
+				entityIn.setPos(entityIn.position().add(allowedVec));
 			    entityIn.setOnGround(targetOnGround);
 		    	entityIn.setDeltaMovement(othertempmotionvec);
 			} else {
-				Vector3d othertempmotionvec = entityIn.getDeltaMovement();
+				Vec3 othertempmotionvec = entityIn.getDeltaMovement();
 				boolean targetOnGround = entityIn.isOnGround();
 			    if (!getFullPushed) entityIn.move(MoverType.SELF, otherposvec.subtract(otheroldposvec));
 			    entityIn.setOnGround(targetOnGround);
@@ -714,7 +735,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	/**
 	 * Handle a block collision.
 	 */
-	public boolean onBlockImpact(BlockRayTraceResult result, Vector3d prevvel) {
+	public boolean onBlockImpact(BlockHitResult result, Vec3 prevvel) {
 		if (net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, result))
 			return false;
 		
@@ -739,8 +760,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		if (speed > 0.3F)
 			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));// - 0.2F
 		
-		// Reset the combo
-		this.comboDmg = 0;
 		if (!this.level.isClientSide) {
 			// If we hit a target block, trigger TargetBlock's arrow hit functionality with our mock arrow, otherwise call onProjectileHit regularly
 			if (blockhit instanceof TargetBlock) {
@@ -748,9 +767,9 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				hitblockstate.onProjectileHit(this.level, hitblockstate, result, this.mockArrow);
 			} else if (blockhit instanceof TurtleEggBlock && ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
 				// If mob griefing is allowed, try to destroy an egg by mocking a player falling on it.
-				blockhit.fallOn(this.level, blockPos, level.players().get(0), impactspeed);
-			} else if ((blockhit instanceof AbstractGlassBlock || (blockhit instanceof PaneBlock && blockhit != Blocks.IRON_BARS))
-					&& this.mass >= 1.0F && random.nextFloat() * this.mass > 0.8F && ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
+				blockhit.fallOn(this.level, hitblockstate, blockPos, level.players().get(0), impactspeed);
+			} else if ((blockhit instanceof AbstractGlassBlock || (blockhit instanceof IronBarsBlock && blockhit != Blocks.IRON_BARS))
+                    && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * speed > 0.5F) {
 				this.level.destroyBlock(blockPos, false);
 				return false;
 			} else if (blockhit instanceof NoteBlock) {
@@ -761,19 +780,18 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				hitblockstate.onProjectileHit(this.level, hitblockstate, result, this);
 	
 				// Check if we are inside of a button block, in which case use the mock arrow to press the button.
-				//BlockPos blockPos = new BlockPos(this.getCenterPositionVec());
 				BlockState thisblockstate = this.level.getBlockState(this.blockPosition());
 				Block thisblock = thisblockstate.getBlock();
-				if (thisblock instanceof AbstractButtonBlock) {
-					this.getMockArrow();					
-					((AbstractButtonBlock)thisblock).entityInside(thisblockstate, this.level, this.blockPosition(), this.mockArrow);
+				
+				if (thisblock instanceof ButtonBlock) {
+					this.getMockArrow();
 				}
 			}
 		}
 		
 		if (this.getItem().getItem() == Items.TURTLE_EGG) {
-			this.setDeltaMovement(Vector3d.ZERO);
-			this.destroy();
+			this.setDeltaMovement(Vec3.ZERO);
+			this.destroy(RemovalReason.KILLED);
 			return false;
 		}
 		
@@ -794,12 +812,12 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	/**
 	    * Returns whether target.hurt() returns true.
 	*/
-	public boolean onEntityImpact(EntityRayTraceResult result) {
+	public boolean onEntityImpact(EntityHitResult result) {
 		if (net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, result))
 			return false;
 		
 		Entity target = result.getEntity();
-		Vector3d velocity = this.getDeltaMovement();
+		Vec3 velocity = this.getDeltaMovement();
 		float speed = (float) velocity.length();
 		
 		Entity thrower = this.getOwner(); // Note: this is null on the client
@@ -814,21 +832,22 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		// If we're moving fast enough, try to hurt the target entity
 		if (speed > minDmgSpeed) {
 			float attackdmg = this.baseDmg;
-			if (!hitThrower) attackdmg += this.comboDmg;
-			if (attackdmg > 1) this.comboDmg += 4.0F;
-			attackdmg = (float) MathHelper.clamp(speed * attackdmg, 0.0D, Integer.MAX_VALUE);
+            if (!hitThrower) attackdmg += this.comboDmg; // Add combo damage but prevent hurting yourself too badly
+			attackdmg = (float) Mth.clamp(speed * attackdmg, 0.0D, Integer.MAX_VALUE);
 			// If the attackdmg is lower than the minimum damage then use probability to still deal the correct damage on average
-			int actualdmg = (attackdmg < 1F) ? (this.random.nextFloat() > attackdmg ? 0 : 1) : MathHelper.ceil(attackdmg);
+			int actualdmg = (attackdmg < 1F) ? (this.random.nextFloat() > attackdmg ? 0 : 1) : Mth.ceil(attackdmg);
 			
 			if (this.hitbybat && !hitThrower) {
 				long j = (long) this.random.nextInt(actualdmg / 2 + 2); // Same bonus as arrows
 				actualdmg = (int) Math.min(j + (long) actualdmg, Integer.MAX_VALUE);
+                
+                this.comboDmg += 3.0F; // Increase the combo damage for the next entity we hit
 			}
 			
 			Entity sourceEntity;
 			// Pretend to be an arrow if we hit a specific entity
-			if (target instanceof TNTMinecartEntity || target instanceof WolfEntity || target instanceof ServerPlayerEntity
-					|| target instanceof ShulkerEntity || target instanceof WitherEntity) {
+			if (target instanceof MinecartTNT || target instanceof Wolf || target instanceof ServerPlayer
+					|| target instanceof Shulker || target instanceof WitherBoss) {
 				this.getMockArrow();
 				sourceEntity = mockArrow;
 			} else {
@@ -843,7 +862,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			} else {
 				source = (new IndirectEntityDamageSource("ball", sourceEntity, this)).setProjectile();
 			}
-			Vector3d targetvelocity = target.getDeltaMovement();
+			Vec3 targetvelocity = target.getDeltaMovement();
 			successAttack = target.hurt(source, actualdmg);
 			target.setDeltaMovement(targetvelocity);
 		}
@@ -852,7 +871,6 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			if (target.getType() == EntityType.ENDERMAN) {
 				return successAttack;
 			}
-						
 			if (target instanceof LivingEntity) {
 				LivingEntity livingentity = (LivingEntity) target;
 	
@@ -873,22 +891,22 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	@Override
 	protected void onInsideBlock(BlockState blockState) {
 		Block block = blockState.getBlock();
-		if (block instanceof AbstractPlantBlock || block instanceof BushBlock) {
+		if (block instanceof GrowingPlantBlock || block instanceof BushBlock) {
 			this.setDeltaMovement(this.getDeltaMovement().scale(0.95));
 		}
 	}
 	
 	@Override
-	protected Vector3d limitPistonMovement(Vector3d expmovement) {
+	protected Vec3 limitPistonMovement(Vec3 expmovement) {
 		BlockPos newPos = new BlockPos(getCenterPositionVec().add(expmovement));
 		if (this.level.getBlockState(newPos).isCollisionShapeFullBlock(level, newPos)) {
-			this.destroy();
+			this.destroy(RemovalReason.KILLED);
 		}
 		this.setDeltaMovement(this.getDeltaMovement().add(expmovement));
 		return expmovement;
 	}
 
-	/** Adapted from {@link ProjectileItemEntity#canHitEntity} because leftOwner couldn't be modified without calling tick() */
+	/** Adapted from {@link ThrowableItemProjectile#canHitEntity} because leftOwner couldn't be modified without calling tick() */
 	@Override
 	protected boolean canHitEntity(Entity entityIn) {// isAlive is only false when the entity has died or removed
 		if (!entityIn.isSpectator() && entityIn.isAlive() && !(entityIn instanceof MockArrow) && (!ServerConfig.lite_mode.get() || !(entityIn instanceof ThrowableBallEntity))) {
@@ -899,7 +917,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		}
 	}
 	
-	/** Adapted from {@link ProjectileItemEntity#checkLeftOwner}*/
+	/** Adapted from {@link ThrowableItemProjectile#checkLeftOwner}*/
 	protected boolean checkLeftOwner() {
 		Entity owner = this.getOwner();
 		if (owner != null) {
@@ -919,7 +937,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	}
 	public void dropSelf(float offsety) {
 		spawnAtLocation(this.getItem(), offsety);
-	    this.remove();
+	    this.remove(RemovalReason.DISCARDED);
 	}
 	
 	// Adapted from Entity.playStepSound to include a volume parameter
@@ -932,11 +950,11 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	}
 		
 	@Override
-	public void addAdditionalSaveData(CompoundNBT compound) {
+	public void addAdditionalSaveData(CompoundTag compound) {
 		super.addAdditionalSaveData(compound);
 		if (this.arrowId != null)
-			compound.put("mockarrow", NBTUtil.createUUID(this.arrowId));
-		compound.putByte("pickup", (byte) this.pickupStatus.ordinal());
+			compound.put("mockarrow", NbtUtils.createUUID(this.arrowId));
+		compound.putByte("pickup", (byte) this.Pickup.ordinal());
 
 		compound.putInt("health", this.health);
 		compound.putFloat("mass", this.mass);
@@ -962,12 +980,12 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	}
 	
 	@Override
-	public void readAdditionalSaveData(CompoundNBT compound) {
+	public void readAdditionalSaveData(CompoundTag compound) {
 		super.readAdditionalSaveData(compound);
-		if (compound.contains("mockarrow",10) && this.level instanceof ServerWorld) {
-			this.arrowId = NBTUtil.loadUUID(compound.getCompound("mockarrow"));
+		if (compound.contains("mockarrow",10) && this.level instanceof ServerLevel) {
+			this.arrowId = NbtUtils.loadUUID(compound.getCompound("mockarrow"));
 		}
-        this.pickupStatus = AbstractArrowEntity.PickupStatus.byOrdinal(compound.getByte("pickup"));
+        this.Pickup = AbstractArrow.Pickup.byOrdinal(compound.getByte("pickup"));
 
         this.health = compound.getInt("health");
         this.mass = compound.getFloat("mass");
@@ -994,19 +1012,19 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	
 	/** Necessary for rendering */
 	@Override
-	public IPacket<?> getAddEntityPacket() {
+	public Packet<?> getAddEntityPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
 	@Override
-	public void writeSpawnData(PacketBuffer buffer) {
+	public void writeSpawnData(FriendlyByteBuf buffer) {
 		buffer.writeBoolean(this.onGround);
 		Entity owner = this.getOwner();
 		buffer.writeInt(owner != null ? owner.getId() : -1);
 	}
 
 	@Override
-	public void readSpawnData(PacketBuffer additionalData) {
+	public void readSpawnData(FriendlyByteBuf additionalData) {
 		this.onGround = additionalData.readBoolean();
 		
 		int entityid = additionalData.readInt();
@@ -1017,9 +1035,9 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	@Override
 	public void setOwner(@Nullable Entity owner) {
 		super.setOwner(owner);
-		if (owner instanceof PlayerEntity) {
-			this.pickupStatus = ((PlayerEntity) owner).abilities.instabuild ? AbstractArrowEntity.PickupStatus.CREATIVE_ONLY
-					: AbstractArrowEntity.PickupStatus.ALLOWED;
+		if (owner instanceof Player) {
+			this.Pickup = ((Player) owner).getAbilities().instabuild ? AbstractArrow.Pickup.CREATIVE_ONLY
+					: AbstractArrow.Pickup.ALLOWED;
 		}
 	}
 	
@@ -1031,17 +1049,17 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		Entity directEntity = source.getDirectEntity();
 		// If we got hit by an arrow or trident, or we are relatively easily destroyable and hit a cactus, destroy this throwable.
 		if (source == DamageSource.CRAMMING || (directEntity != null && (directEntity.getType().is(EntityTypeTags.ARROWS) 
-				|| directEntity instanceof TridentEntity)) || (source == DamageSource.CACTUS && random.nextFloat() < this.destroyChance * 10)) {
-			this.destroy();
+				|| directEntity instanceof ThrownTrident)) || (source == DamageSource.CACTUS && random.nextFloat() < this.destroyChance * 10)) {
+			this.destroy(RemovalReason.KILLED);
 			return true;
 		}
 		
-		if (directEntity instanceof PlayerEntity) {
-			Item heldItem = ((PlayerEntity)directEntity).getMainHandItem().getItem();
+		if (directEntity instanceof Player) {
+			Item heldItem = ((Player)directEntity).getMainHandItem().getItem();
 			if (heldItem instanceof BaseballBat) {
 				return true;
 			} else if (heldItem instanceof TieredItem) {
-				this.destroy();
+				this.destroy(RemovalReason.KILLED);
 				return true;
 //			} else if (heldItem == Items.STICK) {// For debugging
 //				this.tracking = !this.tracking;
@@ -1053,7 +1071,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			this.markHurt();
 			this.health = (int)((float)this.health - amount);
 			if (this.health <= 0) {
-			   this.remove();
+			   this.remove(RemovalReason.KILLED);
 			}
 		}
 		return false;
@@ -1063,42 +1081,42 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	 * Called by a player entity when they collide with an entity. Adapted from {@link AbstractArrow#playerTouch}
 	 */
 	@Override
-	public void playerTouch(PlayerEntity player) {
+	public void playerTouch(Player player) {
 		// If the ball is idle, check if the ball can be picked up.
 		if (!this.level.isClientSide && !player.isCrouching() && (this.isIdle() || this.getNoPhysics())) {
 			this.pickup(player);
 		}
 	}
 	
-	public void pickup(PlayerEntity player) {
-		boolean flag = this.pickupStatus == AbstractArrowEntity.PickupStatus.ALLOWED
-				|| (this.pickupStatus == AbstractArrowEntity.PickupStatus.CREATIVE_ONLY
-						&& player.abilities.instabuild)
+	public void pickup(Player player) {
+		boolean flag = this.Pickup == AbstractArrow.Pickup.ALLOWED
+				|| (this.Pickup == AbstractArrow.Pickup.CREATIVE_ONLY
+						&& player.getAbilities().instabuild)
 				|| this.getNoPhysics() && this.getOwner().getUUID() == player.getUUID();
-		if (this.pickupStatus == AbstractArrowEntity.PickupStatus.ALLOWED
-				&& !player.inventory.add(this.getItem())) {
+		if (this.Pickup == AbstractArrow.Pickup.ALLOWED
+				&& !player.getInventory().add(this.getItem())) {
 			flag = false;
 		}
 
 		// If the ball can be picked up, tell the player to pick it up.
 		if (flag) {
-			((ServerWorld)player.level).getChunkSource().broadcast(this, new SCollectItemPacket(this.getId(), player.getId(), 1));
+			((ServerLevel)player.level).getChunkSource().broadcast(this, new ClientboundTakeItemEntityPacket(this.getId(), player.getId(), 1));
 
-			this.remove();
+			this.remove(RemovalReason.DISCARDED);
 		}
 	}
 	
 	@Override
-	public void remove() {
+	public void remove(RemovalReason reason) {
 		this.getMockArrow(false);
-		if (this.mockArrow != null) this.mockArrow.remove();
-		super.remove();
+		if (this.mockArrow != null) this.mockArrow.remove(reason);
+		super.remove(reason);
 	}
 	
-	public void destroy() {
+	public void destroy(RemovalReason reason) {
 		if (!this.level.isClientSide) {
 			this.level.broadcastEntityEvent(this, (byte) 3);
-			this.remove();
+			this.remove(reason);
 		}
 	}
 	
@@ -1116,18 +1134,18 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	@OnlyIn(Dist.CLIENT)
 	protected void createBreakParticles() {
 		ItemStack itemstack = this.getHalfItem();
-		IParticleData iparticledata = (IParticleData) (new ItemParticleData(ParticleTypes.ITEM, itemstack));
+		ParticleOptions iparticledata = (ParticleOptions) (new ItemParticleOption(ParticleTypes.ITEM, itemstack));
 		
 		for (int i = 0; i < 8; ++i) {
 			/** Adapted from {@link net.minecraft.client.particle.Particle#Particle} */
-			double xd = (Math.random() * 2.0D - 1.0D) * (double) 0.4F;
-			double yd = (Math.random() * 2.0D - 1.0D) * (double) 0.4F;
-			double zd = (Math.random() * 2.0D - 1.0D) * (double) 0.4F;
+			float xd = ((float) Math.random() * 2.0F - 1.0F) *  0.4F;
+			float yd = ((float) Math.random() * 2.0F - 1.0F) *  0.4F;
+			float zd = ((float) Math.random() * 2.0F - 1.0F) *  0.4F;
 			float f = (float) (Math.random() + Math.random() + 1.0D) * 0.15F;
-			float f1 = MathHelper.sqrt(xd * xd + yd * yd + zd * zd);
-			xd = (xd / (double) f1) * (double) f * (double) 0.4F;
-			yd = (yd / (double) f1) * (double) f * (double) 0.4F;// + (double) 0.1F;
-			zd = (zd / (double) f1) * (double) f * (double) 0.4F;
+			float f1 = Mth.sqrt(xd * xd + yd * yd + zd * zd);
+			xd = (xd / f1) * f * 0.4F;
+			yd = (yd / f1) * f * 0.4F;// + 0.1F;
+			zd = (zd / f1) * f * 0.4F;
 			this.level.addParticle(iparticledata, this.getX(), this.getY(), this.getZ(), xd, yd, zd);
 		}
 	}
@@ -1153,9 +1171,9 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 	}
 
 	public void getMockArrow(Boolean createNew) {
-		if ((this.mockArrow == null || !this.mockArrow.isAddedToWorld()) && this.level instanceof ServerWorld) {
+		if ((this.mockArrow == null || !this.mockArrow.isAddedToWorld()) && this.level instanceof ServerLevel) {
 			if (this.arrowId != null && this.mockArrow.isAddedToWorld()) {
-				Entity entity = ((ServerWorld) this.level).getEntity(this.arrowId);
+				Entity entity = ((ServerLevel) this.level).getEntity(this.arrowId);
 				if (entity instanceof MockArrow) {
 					this.mockArrow = (MockArrow) entity;
 				}
@@ -1168,15 +1186,19 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 		if (this.mockArrow != null) {
 			this.mockArrow.setLastAccessTime();
 		}
+		this.setBoundingBox(this.getBoundingBox());
 	}
 	
-	public Vector3d getCenterPositionVec() {
+	public Vec3 getCenterPositionVec() {
 		return this.position().add(0,this.getBbHeight()/2,0);
 	}
 	
 	@Override
-	public void makeStuckInBlock(BlockState blockState, Vector3d stuckSpeed) {
-		this.stuckSpeedOverride = stuckSpeed;
+	public void makeStuckInBlock(BlockState blockState, Vec3 stuckSpeed) {
+		if (blockState.getBlock() instanceof PowderSnowBlock)
+			this.stuckSpeedOverride = new Vec3(0.7D, 0.7D, 0.7D);
+		else
+			this.stuckSpeedOverride = stuckSpeed;
 	}
 	
 	@Override

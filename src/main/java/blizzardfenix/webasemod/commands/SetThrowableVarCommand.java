@@ -7,12 +7,12 @@ import blizzardfenix.webasemod.BaseballMod;
 import blizzardfenix.webasemod.entity.ThrowableBallEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.util.Settings;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 
 public class SetThrowableVarCommand {
 
-    public static void setThrowableVarCommand(CommandDispatcher<CommandSource> dispatcher) {
+    public static void setThrowableVarCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("throwable").requires((source) -> {
             return source.hasPermission(2);
         }).then(Commands.literal("bounciness")
@@ -30,9 +30,9 @@ public class SetThrowableVarCommand {
         }))));
     }
     
-    private static int setBounciness(CommandSource source, float value) {
+    private static int setBounciness(CommandSourceStack commandSourceStack, float value) {
     	BaseballMod.LOGGER.info("set global bounciness to " + value);
-    	source.getLevel().getEntities(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), (input) -> { return true; }).forEach((entity) -> {
+    	commandSourceStack.getLevel().getEntities(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), (input) -> { return true; }).forEach((entity) -> {
     		((ThrowableBallEntity) entity).bounciness = value;
     		Settings.bounciness = value;
     		Settings.overrideBounciness = true;
@@ -41,9 +41,9 @@ public class SetThrowableVarCommand {
     	return 1;
     }
     
-    private static int setFriction(CommandSource source, float value) {
-    	BaseballMod.LOGGER.info("set global friction to " + value);
-    	source.getLevel().getEntities(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), (input) -> { return true; }).forEach((entity) -> {
+    private static int setFriction(CommandSourceStack commandSourceStack, float value) {
+	BaseballMod.LOGGER.info("set global friction to " + value);
+    	commandSourceStack.getLevel().getEntities(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), (input) -> { return true; }).forEach((entity) -> {
     		((ThrowableBallEntity) entity).friction = value;
     		Settings.friction = value;
     		Settings.overrideFriction = true;

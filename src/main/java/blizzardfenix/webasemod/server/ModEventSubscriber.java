@@ -12,28 +12,26 @@ import blizzardfenix.webasemod.init.ModKeyBindings;
 import blizzardfenix.webasemod.items.BaseballItem;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import blizzardfenix.webasemod.util.HelperFunctions;
-import net.minecraft.block.DispenserBlock;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.dispenser.IPosition;
-import net.minecraft.dispenser.ProjectileDispenseBehavior;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity;
-import net.minecraft.entity.projectile.ProjectileEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.ITagCollection;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Timer;
-import net.minecraft.util.Util;
-import net.minecraft.world.World;
+import net.minecraft.client.Timer;
+import net.minecraft.core.Position;
+import net.minecraft.core.dispenser.AbstractProjectileDispenseBehavior;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.event.TickEvent;
@@ -42,6 +40,8 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.tags.ITagManager;
 import net.minecraftforge.server.command.ConfigCommand;
 
 @EventBusSubscriber(modid = BaseballMod.MODID)
@@ -69,8 +69,8 @@ public class ModEventSubscriber {
 	        int ticks = timer.advanceTime(Util.getMillis());
 	        if (throwDelay <= ticks) {
 	        	throwDelay = 0;
-				for (Hand hand : Hand.values()) {
-					ActionResultType result = HelperFunctions.tryThrow(mc.level, mc.player, hand, mc.player.getDeltaMovement());							
+				for (InteractionHand hand : InteractionHand.values()) {
+					InteractionResult result = HelperFunctions.tryThrow(mc.level, mc.player, hand, mc.player.getDeltaMovement());							
 					if (result.consumesAction()) {
 						throwDelay = 4;
 						mc.gameRenderer.itemInHandRenderer.itemUsed(hand);
@@ -88,23 +88,24 @@ public class ModEventSubscriber {
     
     @SubscribeEvent
     public static void onTagsUpdated(TagsUpdatedEvent event) {
-		ITagCollection<Item> itemtags = ItemTags.getAllTags();
-		ITag<Item> throwableItems = itemtags.getTag(new ResourceLocation("webasemod", "throwable_items"));
+		ITagManager<Item> itemtags = ForgeRegistries.ITEMS.tags();
+		TagKey<Item> throwableItems = itemtags.createTagKey(new ResourceLocation("webasemod", "throwable_items"));
+		
     	
     	// Set the ability for dispensers to shoot balls
-		throwableItems.getValues().forEach((item) -> {
+		itemtags.getTag(throwableItems).forEach((item) -> {
     		if (item == Items.FIRE_CHARGE) return;// Fireballs are the only throwable item that already have different dispenser behaviour
-    		DispenserBlock.registerBehavior(item, new ProjectileDispenseBehavior() {
-    			protected ProjectileEntity getProjectile(World world, IPosition pos, ItemStack itemstack) {
+    		DispenserBlock.registerBehavior(item, new AbstractProjectileDispenseBehavior() {
+    			protected Projectile getProjectile(Level world, Position pos, ItemStack itemstack) {
     				return Util.make(
-    						itemtags.getTag(new ResourceLocation("forge","nuggets")).contains(itemstack.getItem())
+    						itemtags.getTag(itemtags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(itemstack.getItem())
 							? new BouncyBallEntity(ModEntityTypes.SMALL_THROWABLE_ITEM_ENTITY.get(), world, pos.x(), pos.y(), pos.z())
 							: new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), world, pos.x(), pos.y(), pos.z()), 
 						(ballEntity) -> {
 							ballEntity.setItem(itemstack);
 							ballEntity.comboDmg += 0.125F * 4 + ballEntity.batHitDmg; // Equivalent to hitting with stone bat
 							ballEntity.hitbybat = true;
-							ballEntity.pickupStatus = AbstractArrowEntity.PickupStatus.ALLOWED;
+							ballEntity.Pickup = AbstractArrow.Pickup.ALLOWED;
     				});
     			}
     		});
@@ -128,18 +129,20 @@ public class ModEventSubscriber {
 
 	@SubscribeEvent
 	public static void onRightClickItemEvent(final PlayerInteractEvent.RightClickItem event) {
-		World level = event.getWorld();
+		Level level = event.getWorld();
 		ItemStack itemStack = event.getItemStack();
 		Item item = itemStack.getItem();
-		PlayerEntity player = event.getPlayer();
-		ITagCollection<Item> tags = ItemTags.getAllTags();
+		Player player = event.getPlayer();
+		ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
 		
-		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to right click, or if the held item is a vanilla throwable, then try to throw the held item.
+		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to the use key, 
+		// or if the held item is a vanilla throwable and those should be overridden, then try to throw the held item.
 		// BaseballItems handle throwing themselves through Item.use()
-		if ((ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey() && tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && 
-				!(item instanceof BaseballItem)) || (tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
+		if ((ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey() && tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "throwable_items"))).contains(item) && 
+				!(item instanceof BaseballItem)) || 
+				(tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "vanilla_throwables"))).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
-				ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement());
+				InteractionResult result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement());
 				if (result.consumesAction()) {
 					// If the throw was successful, tell the server to perform the throw as well
 					WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement()));
@@ -149,7 +152,7 @@ public class ModEventSubscriber {
 				}
 			} else {
 				event.setCanceled(true);
-				event.setCancellationResult(ActionResult.sidedSuccess(itemStack, level.isClientSide()).getResult());
+				event.setCancellationResult(InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide()).getResult());
 			}
 		}
 	}

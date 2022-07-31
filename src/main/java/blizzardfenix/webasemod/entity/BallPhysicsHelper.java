@@ -1,26 +1,23 @@
 package blizzardfenix.webasemod.entity;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import blizzardfenix.webasemod.BaseballMod;
-
-import org.apache.logging.log4j.LogManager;
-
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntitySize;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.entity.passive.BatEntity;
-import net.minecraft.entity.passive.ParrotEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ambient.Bat;
+import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public class BallPhysicsHelper {
 	protected static Logger LOGGER = LogManager.getLogger(BaseballMod.MODID + " BallPhysicsHelper");
@@ -35,11 +32,11 @@ public class BallPhysicsHelper {
 	 * @param centerpos the ball's center position
 	 * @return
 	 */
-	public static Vector3d getEntityCapsulePos(Entity entity, Vector3d centerpos) {
-		Vector3d entitypos = entity.position();
+	public static Vec3 getEntityCapsulePos(Entity entity, Vec3 centerpos) {
+		Vec3 entitypos = entity.position();
 		float halfwidth = entity.getBbWidth()/2;
-		return new Vector3d(entitypos.x,
-				MathHelper.clamp(centerpos.y, entitypos.y + halfwidth, entitypos.y + entity.getBbHeight() - halfwidth),
+		return new Vec3(entitypos.x,
+				Mth.clamp(centerpos.y, entitypos.y + halfwidth, entitypos.y + entity.getBbHeight() - halfwidth),
 				entitypos.z);
 	}
 	
@@ -49,10 +46,10 @@ public class BallPhysicsHelper {
 	 * @param centerpos the ball's center position
 	 * @return
 	 */
-	public static Vector3d getEntityCylinderPos(Entity entity, Vector3d centerpos) {
-		Vector3d entitypos = entity.position();
-		return new Vector3d(entitypos.x,
-				MathHelper.clamp(centerpos.y, entitypos.y, entitypos.y + entity.getBbHeight()),
+	public static Vec3 getEntityCylinderPos(Entity entity, Vec3 centerpos) {
+		Vec3 entitypos = entity.position();
+		return new Vec3(entitypos.x,
+				Mth.clamp(centerpos.y, entitypos.y, entitypos.y + entity.getBbHeight()),
 				entitypos.z);
 	}
 	
@@ -61,7 +58,7 @@ public class BallPhysicsHelper {
 		if (target instanceof LivingEntity) {
 			result += 5 * ((LivingEntity) target).getAttribute(Attributes.KNOCKBACK_RESISTANCE).getValue();
 			//if (((LivingEntity) target).getAttribute(Attributes.KNOCKBACK_RESISTANCE).getValue() > 0) result = 0.01F;
-			if ((target instanceof BatEntity || target instanceof ParrotEntity) && !target.isOnGround()) {
+			if ((target instanceof Bat || target instanceof Parrot) && !target.isOnGround()) {
 				// Small flying mobs can get knocked back a whole lot more
 				result *= 0.5F;
 			}
@@ -82,9 +79,9 @@ public class BallPhysicsHelper {
 		return var;
 	}
 
-	public static BlockRayTraceResult computeTargetBlock(Axis axis, Vector3d hitvec, Vector3d expmovement, World level, EntitySize size) {
+	public static BlockHitResult computeTargetBlock(Axis axis, Vec3 hitvec, Vec3 expmovement, Level level, EntityDimensions size) {
 		BlockPos blockpos;
-		Vector3d blockvec = null;
+		Vec3 blockvec = null;
 		Direction dir = null;
 		double halfheight = size.height/2;
 		double halfwidth = size.width/2;
@@ -129,9 +126,9 @@ public class BallPhysicsHelper {
 			blockvec = blockvec.subtract(axis == Axis.X ? dir.getStepX() : 0, axis == Axis.Y ? dir.getStepY() : 0, axis == Axis.Z ? dir.getStepZ() : 0);
 
 			// Test whether we hit a block head on.
-			BlockRayTraceResult raytraceresult = level.clip(new RayTraceContext(hitvec, hitvec.add(axis == Axis.X ? expmovement.x : 0, axis == Axis.Y ? expmovement.y : 0, axis == Axis.Z ? expmovement.z : 0), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+			BlockHitResult raytraceresult = level.clip(new ClipContext(hitvec, hitvec.add(axis == Axis.X ? expmovement.x : 0, axis == Axis.Y ? expmovement.y : 0, axis == Axis.Z ? expmovement.z : 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
 			
-			if (raytraceresult.getType() == RayTraceResult.Type.MISS) {
+			if (raytraceresult.getType() == BlockHitResult.Type.MISS) {
 				// Two booleans for each axis, denoting whether we hit near an edge and whether we hit high (h) or low (l) in the block in the axis direction
 				// Calculate which edges of adjacent blocks we could have hit. (large margin of error because move() will sometimes detect collisions where we shouldn't have hit an edge)
 				boolean xedgeh = axis != Axis.X && 1 - relativeposx - halfwidth <= 0.1D;
@@ -268,7 +265,7 @@ public class BallPhysicsHelper {
 		}
 		blockpos = new BlockPos(blockvec);
 		
-		return new BlockRayTraceResult(hitvec, dir, blockpos, false);
+		return new BlockHitResult(hitvec, dir, blockpos, false);
 	}
 
 	/**
@@ -278,8 +275,8 @@ public class BallPhysicsHelper {
 	 @return Where (and whether) a block has been found.
 	 */
 	public static HitType tryOtherEdge(Axis axisNormal, boolean edgeh1, boolean edgeh2, boolean edgel1, boolean edgel2, 
-			Vector3d hitvec, Vector3d expmovement, World level, EntitySize size) {
-		BlockRayTraceResult raytraceresult = null;
+			Vec3 hitvec, Vec3 expmovement, Level level, EntityDimensions size) {
+		BlockHitResult raytraceresult = null;
 		double halfheight = size.height/2;
 		double halfwidth = size.width/2;
 		Axis axisToTest = Axis.X;
@@ -295,12 +292,12 @@ public class BallPhysicsHelper {
 			break;
 		}
 		
-		Vector3d normalMovement = new Vector3d(	axisNormal == Axis.X ? expmovement.x : 0, 
+		Vec3 normalMovement = new Vec3(	axisNormal == Axis.X ? expmovement.x : 0, 
 												axisNormal == Axis.Y ? expmovement.y : 0, 
 												axisNormal == Axis.Z ? expmovement.z : 0);
 		boolean edge1 = edgeh1 || edgel1;
 		boolean edge2 = edgeh2 || edgel2;
-		Vector3d temppos = hitvec;
+		Vec3 temppos = hitvec;
 
 		// If we hit an edge, there is a chance we hit either a corner or a regular edge.
 		// Therefore we should first check for regular edges, and then for corners.
@@ -308,25 +305,25 @@ public class BallPhysicsHelper {
 			temppos = hitvec.add(	axisToTest == Axis.X ? halfwidth * (edgeh1 ? 1 : -1) : 0, 
 									axisToTest == Axis.Y ? halfheight * (edgeh1 ? 1 : -1) : 0, 
 									axisToTest == Axis.Z ? halfwidth * (edgeh1 ? 1 : -1) : 0);
-			raytraceresult = level.clip(new RayTraceContext(temppos, temppos.add(normalMovement), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+			raytraceresult = level.clip(new ClipContext(temppos, temppos.add(normalMovement), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
 		}
-		if (!edge1 || raytraceresult.getType() == RayTraceResult.Type.MISS) {
+		if (!edge1 || raytraceresult.getType() == BlockHitResult.Type.MISS) {
 			if (edge2) {
 				temppos = hitvec.add(	axisNormal != Axis.X && axisToTest != Axis.X ? halfwidth * (edgeh2 ? 1 : -1) : 0, 
 										axisNormal != Axis.Y && axisToTest != Axis.Y ? halfheight * (edgeh2 ? 1 : -1) : 0, 
 										axisNormal != Axis.Z && axisToTest != Axis.Z ? halfwidth * (edgeh2 ? 1 : -1) : 0);
-				raytraceresult = level.clip(new RayTraceContext(temppos, temppos.add(normalMovement), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+				raytraceresult = level.clip(new ClipContext(temppos, temppos.add(normalMovement), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
 			}
-			if (!edge2 || raytraceresult.getType() == RayTraceResult.Type.MISS) {
+			if (!edge2 || raytraceresult.getType() == BlockHitResult.Type.MISS) {
 				if (edge1 && edge2) {
 					// Since edge2 is true, temppos is already the position of the block next to the ball along 2nd axis, 
 					// so now we move 1 along the 1st axis as well for the corner.
 					temppos = temppos.add(	axisToTest == Axis.X ? halfwidth * (edgeh1 ? 1 : -1) : 0, 
 											axisToTest == Axis.Y ? halfheight * (edgeh1 ? 1 : -1) : 0, 
 											axisToTest == Axis.Z ? halfwidth * (edgeh1 ? 1 : -1) : 0);
-					raytraceresult = level.clip(new RayTraceContext(temppos, temppos.add(normalMovement), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+					raytraceresult = level.clip(new ClipContext(temppos, temppos.add(normalMovement), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
 				}
-				if (!edge1 || !edge2 || raytraceresult.getType() == RayTraceResult.Type.MISS) {
+				if (!edge1 || !edge2 || raytraceresult.getType() == BlockHitResult.Type.MISS) {
 					// Do nothing if only misses
 					return HitType.MISS;
 				} else {

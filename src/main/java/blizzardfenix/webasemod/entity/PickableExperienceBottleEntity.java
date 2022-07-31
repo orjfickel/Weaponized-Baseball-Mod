@@ -1,26 +1,25 @@
 package blizzardfenix.webasemod.entity;
 
 import blizzardfenix.webasemod.init.ModEntityTypes;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.EnderPearlEntity;
-import net.minecraft.entity.item.ExperienceBottleEntity;
-import net.minecraft.network.IPacket;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.ThrownExperienceBottle;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.network.NetworkHooks;
 
-public class PickableExperienceBottleEntity extends ExperienceBottleEntity {
+public class PickableExperienceBottleEntity extends ThrownExperienceBottle {
 
-	public PickableExperienceBottleEntity(EntityType<? extends PickableExperienceBottleEntity> entityType, World level) {
+	public PickableExperienceBottleEntity(EntityType<? extends PickableExperienceBottleEntity> entityType, Level level) {
 		super(entityType, level);
 	}
 
-	public PickableExperienceBottleEntity(World level, LivingEntity player) {
+	public PickableExperienceBottleEntity(Level level, LivingEntity player) {
 		this(level, player.getX(), player.getEyeY() - (double) 0.1F, player.getZ());
 		this.setOwner(player);
 	}
 
-	public PickableExperienceBottleEntity(World level, double x, double y, double z) {
+	public PickableExperienceBottleEntity(Level level, double x, double y, double z) {
 		this(ModEntityTypes.PICKABLE_EXPERIENCE_BOTTLE_ENTITY.get(), level);
 		this.setPos(x, y, z);
 	}
@@ -32,7 +31,7 @@ public class PickableExperienceBottleEntity extends ExperienceBottleEntity {
 
 //	/** Necessary for rendering */
 	@Override
-	public IPacket<?> getAddEntityPacket() {
+	public Packet<?> getAddEntityPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 }

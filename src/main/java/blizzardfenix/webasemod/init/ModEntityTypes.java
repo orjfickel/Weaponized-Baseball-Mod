@@ -9,12 +9,12 @@ import blizzardfenix.webasemod.entity.PickableEnderPearlEntity;
 import blizzardfenix.webasemod.entity.PickableExperienceBottleEntity;
 import blizzardfenix.webasemod.entity.PickablePotionEntity;
 import blizzardfenix.webasemod.entity.PickableSnowballEntity;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.EntityType;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.RegistryObject;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 
 public class ModEntityTypes {
 
@@ -23,25 +23,25 @@ public class ModEntityTypes {
 	public static final String THROWABLE_ITEM_NAME = "throwable_item";
 	public static final RegistryObject<EntityType<BouncyBallEntity>> THROWABLE_ITEM_ENTITY =
 			ENTITY_TYPES.register(THROWABLE_ITEM_NAME, () -> EntityType.Builder.<BouncyBallEntity>
-				of(BouncyBallEntity::new, EntityClassification.MISC)
+				of(BouncyBallEntity::new, MobCategory.MISC)
 				.sized(0.34F, 0.34F) // 0.35 means that the bounding box exactly encloses the baseball sprite.
-				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(10)
+				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6)
 				.build(new ResourceLocation(BaseballMod.MODID, THROWABLE_ITEM_NAME).toString()));
 	
 	public static final String SMALL_THROWABLE_ITEM_NAME = "small_throwable_item";
 	public static final RegistryObject<EntityType<BouncyBallEntity>> SMALL_THROWABLE_ITEM_ENTITY =
 			ENTITY_TYPES.register(SMALL_THROWABLE_ITEM_NAME, () -> EntityType.Builder.<BouncyBallEntity>
-				of(BouncyBallEntity::new, EntityClassification.MISC)
+				of(BouncyBallEntity::new, MobCategory.MISC)
 				.sized(0.2F, 0.2F)
-				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(10)
+				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6)
 				.build(new ResourceLocation(BaseballMod.MODID, SMALL_THROWABLE_ITEM_NAME).toString()));
 
 	public static final String BOUNCY_FIREBALL_NAME = "bouncy_fireball";
 	public static final RegistryObject<EntityType<BouncyFireBallEntity>> BOUNCY_FIREBALL_ENTITY =
 			ENTITY_TYPES.register(BOUNCY_FIREBALL_NAME, () -> EntityType.Builder.<BouncyFireBallEntity>
-				of(BouncyFireBallEntity::new, EntityClassification.MISC)
+				of(BouncyFireBallEntity::new, MobCategory.MISC)
 				.sized(0.3125F, 0.3125F)
-				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(10)
+				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6)
 				.build(new ResourceLocation(BaseballMod.MODID, BOUNCY_FIREBALL_NAME).toString()));
 
 	public static final ThrowableProperties BASEBALL_PROPERTIES = new ThrowableProperties.Builder().build();
@@ -84,38 +84,38 @@ public class ModEntityTypes {
 	
 	public static final String MOCKARROW_NAME = "mock_arrow";
 	public static final RegistryObject<EntityType<MockArrow>> MOCKARROW_ENTITY = ENTITY_TYPES.register(MOCKARROW_NAME, () -> 
-		EntityType.Builder.<MockArrow>of(MockArrow::new, EntityClassification.MISC)
+		EntityType.Builder.<MockArrow>of(MockArrow::new, MobCategory.MISC)
 			.sized(0.35F, 0.35F)
 			.build(new ResourceLocation(BaseballMod.MODID, MOCKARROW_NAME).toString()));
 	
 	public static final String PICKABLE_SNOWBALL_NAME = "pickable_snowball";
 	public static final RegistryObject<EntityType<PickableSnowballEntity>> PICKABLE_SNOWBALL_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_SNOWBALL_NAME, () -> EntityType.Builder.<PickableSnowballEntity>
-				of(PickableSnowballEntity::new, EntityClassification.MISC)
-				.sized(0.34F, 0.34F).clientTrackingRange(4).updateInterval(10)
+				of(PickableSnowballEntity::new, MobCategory.MISC)
+				.sized(0.34F, 0.34F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_SNOWBALL_NAME).toString()));
 	public static final String PICKABLE_EGG_NAME = "pickable_egg";
 	public static final RegistryObject<EntityType<PickableEggEntity>> PICKABLE_EGG_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_EGG_NAME, () -> EntityType.Builder.<PickableEggEntity>
-				of(PickableEggEntity::new, EntityClassification.MISC)
-				.sized(0.34F, 0.34F).clientTrackingRange(4).updateInterval(10)
+				of(PickableEggEntity::new, MobCategory.MISC)
+				.sized(0.34F, 0.34F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_EGG_NAME).toString()));
 	public static final String PICKABLE_ENDER_PEARL_NAME = "pickable_ender_pearl";
 	public static final RegistryObject<EntityType<PickableEnderPearlEntity>> PICKABLE_ENDER_PEARL_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_ENDER_PEARL_NAME, () -> EntityType.Builder.<PickableEnderPearlEntity>
-				of(PickableEnderPearlEntity::new, EntityClassification.MISC)
-				.sized(0.34F, 0.34F).clientTrackingRange(4).updateInterval(10)
+				of(PickableEnderPearlEntity::new, MobCategory.MISC)
+				.sized(0.34F, 0.34F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_ENDER_PEARL_NAME).toString()));
 	public static final String PICKABLE_POTION_NAME = "pickable_potion";
 	public static final RegistryObject<EntityType<PickablePotionEntity>> PICKABLE_POTION_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_POTION_NAME, () -> EntityType.Builder.<PickablePotionEntity>
-				of(PickablePotionEntity::new, EntityClassification.MISC)
-				.sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10)
+				of(PickablePotionEntity::new, MobCategory.MISC)
+				.sized(0.25F, 0.25F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_POTION_NAME).toString()));
 	public static final String PICKABLE_EXPERIENCE_BOTTLE_NAME = "pickable_experience_bottle";
 	public static final RegistryObject<EntityType<PickableExperienceBottleEntity>> PICKABLE_EXPERIENCE_BOTTLE_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_EXPERIENCE_BOTTLE_NAME, () -> EntityType.Builder.<PickableExperienceBottleEntity>
-				of(PickableExperienceBottleEntity::new, EntityClassification.MISC)
+				of(PickableExperienceBottleEntity::new, MobCategory.MISC)
 				.sized(0.34F, 0.34F).clientTrackingRange(4).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_EXPERIENCE_BOTTLE_NAME).toString()));
 }

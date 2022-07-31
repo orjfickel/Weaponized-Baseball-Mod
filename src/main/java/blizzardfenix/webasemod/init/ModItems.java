@@ -4,11 +4,13 @@ import blizzardfenix.webasemod.BaseballMod;
 import blizzardfenix.webasemod.items.BaseballItem;
 import blizzardfenix.webasemod.items.CatcherGlove;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemTier;
-import net.minecraftforge.fml.RegistryObject;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Tier;
+import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.Tiers;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 
 public class ModItems {
 	public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, BaseballMod.MODID);
@@ -24,10 +26,10 @@ public class ModItems {
 	
 	public static final RegistryObject<CatcherGlove> CATCHER_GLOVE = ITEMS.register("catcher_glove", () -> new CatcherGlove(new CatcherGlove.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 
-	public static final RegistryObject<BaseballBat> WOODEN_BASEBALL_BAT = ITEMS.register("wooden_bat", () -> new BaseballBat(ItemTier.WOOD, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
-	public static final RegistryObject<BaseballBat> STONE_BASEBALL_BAT = ITEMS.register("stone_bat", () -> new BaseballBat(ItemTier.STONE, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
-	public static final RegistryObject<BaseballBat> GOLDEN_BASEBALL_BAT = ITEMS.register("golden_bat", () -> new BaseballBat(ItemTier.GOLD, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
-	public static final RegistryObject<BaseballBat> IRON_BASEBALL_BAT = ITEMS.register("iron_bat", () -> new BaseballBat(ItemTier.IRON, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
-	public static final RegistryObject<BaseballBat> DIAMOND_BASEBALL_BAT = ITEMS.register("diamond_bat", () -> new BaseballBat(ItemTier.DIAMOND, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
-	public static final RegistryObject<BaseballBat> NETHERITE_BASEBALL_BAT = ITEMS.register("netherite_bat", () -> new BaseballBat(ItemTier.NETHERITE, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BaseballBat> WOODEN_BASEBALL_BAT = ITEMS.register("wooden_bat", () -> new BaseballBat(Tiers.WOOD, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BaseballBat> STONE_BASEBALL_BAT = ITEMS.register("stone_bat", () -> new BaseballBat(Tiers.STONE, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BaseballBat> GOLDEN_BASEBALL_BAT = ITEMS.register("golden_bat", () -> new BaseballBat(Tiers.GOLD, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BaseballBat> IRON_BASEBALL_BAT = ITEMS.register("iron_bat", () -> new BaseballBat(Tiers.IRON, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BaseballBat> DIAMOND_BASEBALL_BAT = ITEMS.register("diamond_bat", () -> new BaseballBat(Tiers.DIAMOND, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BaseballBat> NETHERITE_BASEBALL_BAT = ITEMS.register("netherite_bat", () -> new BaseballBat(Tiers.NETHERITE, new BaseballBat.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 }

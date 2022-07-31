@@ -15,28 +15,28 @@ import blizzardfenix.webasemod.entity.PickablePotionEntity;
 import blizzardfenix.webasemod.entity.PickableSnowballEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
-import net.minecraft.entity.item.EnderPearlEntity;
-import net.minecraft.entity.item.ExperienceBottleEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.EggEntity;
-import net.minecraft.entity.projectile.PotionEntity;
-import net.minecraft.entity.projectile.ProjectileItemEntity;
-import net.minecraft.entity.projectile.SnowballEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
-import net.minecraft.tags.ITagCollection;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Snowball;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import net.minecraft.world.entity.projectile.ThrownEgg;
+import net.minecraft.world.entity.projectile.ThrownEnderpearl;
+import net.minecraft.world.entity.projectile.ThrownExperienceBottle;
+import net.minecraft.world.entity.projectile.ThrownPotion;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.tags.ITagManager;
 
 public class HelperFunctions {
 	protected static final Random random = new Random();
@@ -48,7 +48,7 @@ public class HelperFunctions {
 	 * @param hand
 	 * @return
 	 */
-	public static ActionResult<ItemStack> throwBall(World level, PlayerEntity player, ItemStack itemstack, @Nullable ProjectileItemEntity throwableentity, Vector3d playerVelocity) {		
+	public static InteractionResultHolder<ItemStack> throwBall(Level level, Player player, ItemStack itemstack, @Nullable ThrowableItemProjectile throwableentity, Vec3 playerVelocity) {		
 		SoundEvent soundEvent;
 		Item item = itemstack.getItem();
 		if(item == Items.ENDER_PEARL)
@@ -59,9 +59,11 @@ public class HelperFunctions {
 			soundEvent = SoundEvents.EXPERIENCE_BOTTLE_THROW;
 		else if(item == Items.SPLASH_POTION)
 			soundEvent = SoundEvents.SPLASH_POTION_THROW;
+        else if(item == Items.LINGERING_POTION)
+            soundEvent = SoundEvents.LINGERING_POTION_THROW;
 		else
 			soundEvent = SoundEvents.EGG_THROW;
-		level.playSound((PlayerEntity) null, player.getX(), player.getY(), player.getZ(), soundEvent, SoundCategory.NEUTRAL, 0.5F,
+		level.playSound((Player) null, player.getX(), player.getY(), player.getZ(), soundEvent, SoundSource.NEUTRAL, 0.5F,
 				0.4F / (random.nextFloat() * 0.4F + 0.8F));
 		
 		if (!level.isClientSide()) {
@@ -73,20 +75,20 @@ public class HelperFunctions {
 			player.setDeltaMovement(playerVelocity);
 			if (Settings.throwUp && player.getMainHandItem().getItem() instanceof BaseballBat) {
 				// Aims the ball at 45 degree angle if looking straight ahead, otherwise converges to throwing straight
-				float pitchrot = player.xRot - 0.5F * (90 - Math.abs(player.xRot));
+				float pitchrot = player.getXRot() - 0.5F * (90 - Math.abs(player.getXRot()));
 				float inaccuracy = isBouncyBall ? bouncyBallEntity.baseInaccuracy + 0.5F : 1.0F;
-				throwableentity.shootFromRotation(player, pitchrot, player.yRot, 
+				throwableentity.shootFromRotation(player, pitchrot, player.getYRot(), 
 						item == Items.EXPERIENCE_BOTTLE ? -20.0F : 0.0F, 0.2F, inaccuracy);
 
 				// Add more of the player velocity so that the ball should be thrown such that it passes the center of the screen, allowing it to be easily hit.
 				if (!Double.isNaN(playerVelocity.y)) {
 					double playerSpeed = playerVelocity.length();
-					if (playerSpeed != 0 && (!player.abilities.flying || playerSpeed > 0.4F)) {
-						Vector3d playerVelScaled = playerVelocity.scale(
+					if (playerSpeed != 0 && (!player.getAbilities().flying || playerSpeed > 0.4F)) {
+						Vec3 playerVelScaled = playerVelocity.scale(
 								Math.sqrt(playerSpeed*0.5F) / playerSpeed - 0.72F);
 						throwableentity.setDeltaMovement(throwableentity.getDeltaMovement()
 								.add(playerVelScaled.x, 
-								!player.abilities.flying ? 0.0D : playerVelScaled.y, 
+								!player.getAbilities().flying ? 0.0D : playerVelScaled.y, 
 								playerVelScaled.z));
 					}
 				}
@@ -95,40 +97,40 @@ public class HelperFunctions {
 				float speed = 	player.isCrouching() ? 0.3F : 
 								isBouncyBall ? bouncyBallEntity.throwSpeed : 
 								item == Items.EXPERIENCE_BOTTLE ? 0.7F : 
-								item == Items.SPLASH_POTION ? 0.5F : 
+                                item == Items.SPLASH_POTION || item == Items.LINGERING_POTION ? 0.5F : 
 								1.5F;
-				throwableentity.shootFromRotation(player, player.xRot, player.yRot, 
+				throwableentity.shootFromRotation(player, player.getXRot(), player.getYRot(), 
 						item == Items.EXPERIENCE_BOTTLE ? -20.0F : 0.0F, speed, inaccuracy);
 			}
 			level.addFreshEntity(throwableentity);
 		}
 
 		player.awardStat(Stats.ITEM_USED.get(itemstack.getItem()));
-		if (!player.abilities.instabuild) {
+		if (!player.getAbilities().instabuild) {
 			itemstack.shrink(1);
 		}
 		
-		return ActionResult.sidedSuccess(itemstack, level.isClientSide());
+		return InteractionResultHolder.sidedSuccess(itemstack, level.isClientSide());
 	}
 
-	public static ActionResultType tryThrow(World level, PlayerEntity player, Hand hand, Vector3d playerVelocity) {
+	public static InteractionResult tryThrow(Level level, Player player, InteractionHand hand, Vec3 playerVelocity) {
 		ItemStack itemstack = player.getItemInHand(hand);
-		Item item = itemstack.getItem();
 		if (!itemstack.isEmpty()) {
-			ITagCollection<Item> tags = ItemTags.getAllTags();
-			boolean isExistingThrowable = tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item);
-			if (tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) || isExistingThrowable) {
-				ActionResultType result;
+			Item item = itemstack.getItem();
+			ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
+			boolean isExistingThrowable = tags.getTag(tags.createTagKey(new ResourceLocation("webasemod","vanilla_throwables"))).contains(item);
+			if (tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "throwable_items"))).contains(item) || isExistingThrowable) {
+				InteractionResult result;
 				if (isExistingThrowable) {
 					if (ServerConfig.override_vanilla_throwables.get()) {
-						ProjectileItemEntity itementity;
+						ThrowableItemProjectile itementity;
 						if(item == Items.ENDER_PEARL)
 							itementity = new PickableEnderPearlEntity(level, player);
 						else if(item == Items.EGG)
 							itementity = new PickableEggEntity(level, player);
 						else if(item == Items.EXPERIENCE_BOTTLE)
 							itementity = new PickableExperienceBottleEntity(level, player);
-						else if(item == Items.SPLASH_POTION)
+                        else if(item == Items.SPLASH_POTION || item == Items.LINGERING_POTION)
 							itementity = new PickablePotionEntity(level, player);
 						else
 							itementity = new PickableSnowballEntity(level, player);
@@ -140,7 +142,7 @@ public class HelperFunctions {
 					BouncyBallEntity throwableentity;
 					if (item == Items.FIRE_CHARGE) {
 						throwableentity = new BouncyFireBallEntity(ModEntityTypes.BOUNCY_FIREBALL_ENTITY.get(), level, player);
-					} else if (tags.getTag(new ResourceLocation("forge","nuggets")).contains(item)) {
+					} else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(item)) {
 						throwableentity = new BouncyBallEntity(ModEntityTypes.SMALL_THROWABLE_ITEM_ENTITY.get(), level, player);
 					} else
 						throwableentity = new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), level, player);
@@ -158,6 +160,6 @@ public class HelperFunctions {
 				return result;
 			}
 		}
-		return ActionResultType.PASS;
+		return InteractionResult.PASS;
 	}
 }
