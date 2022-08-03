@@ -6,6 +6,7 @@ import blizzardfenix.webasemod.init.ThrowableProperties;
 import blizzardfenix.webasemod.server.WebaseMessage;
 import blizzardfenix.webasemod.server.WebasePacketHandler;
 import blizzardfenix.webasemod.util.HelperFunctions;
+import blizzardfenix.webasemod.util.Settings;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -28,10 +29,10 @@ public class BaseballItem extends Item {
 
 		if(level.isClientSide()) {
 			BouncyBallEntity throwableentity = new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), level, player);
-			ActionResultType result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, player.getDeltaMovement()).getResult();						
+			ActionResultType result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, player.getDeltaMovement(), Settings.throwUp).getResult();
 			if (result.consumesAction()) {			
 				// If the throw was successful, tell the server to perform the throw as well
-				WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(hand, player.getDeltaMovement()));
+				WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(hand, player.getDeltaMovement(), Settings.throwUp));
 			}
 		}
 		

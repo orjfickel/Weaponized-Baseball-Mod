@@ -12,6 +12,7 @@ import blizzardfenix.webasemod.init.ModKeyBindings;
 import blizzardfenix.webasemod.items.BaseballItem;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import blizzardfenix.webasemod.util.HelperFunctions;
+import blizzardfenix.webasemod.util.Settings;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.dispenser.IPosition;
@@ -29,18 +30,14 @@ import net.minecraft.tags.ITagCollection;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Timer;
 import net.minecraft.util.Util;
 import net.minecraft.world.World;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TagsUpdatedEvent;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.server.command.ConfigCommand;
 
@@ -55,37 +52,7 @@ public class ModEventSubscriber {
         ConfigCommand.register(event.getDispatcher());
 		LOGGER.info("Registered commands");
     }
-	
-	static int throwDelay = 0;
-	static Timer timer = new Timer(20.0F, 0L);
-
-	@SubscribeEvent
-	public static void onClientTick(final TickEvent.ClientTickEvent event) {
-		// If the throw key is pressed, throw what you're holding in your main hand and otherwise your off hand
-		Minecraft mc = Minecraft.getInstance();
-		if (mc.screen == null && event.side == LogicalSide.CLIENT && ModKeyBindings.throwKey.isDown() && 
-				ModKeyBindings.throwKey.getKey() != mc.options.keyUse.getKey() && !mc.options.keyUse.isDown()) {// Use button overrides the throw button
-			// Check if enough ticks have passed since the last throw
-	        int ticks = timer.advanceTime(Util.getMillis());
-	        if (throwDelay <= ticks) {
-	        	throwDelay = 0;
-				for (Hand hand : Hand.values()) {
-					ActionResultType result = HelperFunctions.tryThrow(mc.level, mc.player, hand, mc.player.getDeltaMovement());							
-					if (result.consumesAction()) {
-						throwDelay = 4;
-						mc.gameRenderer.itemInHandRenderer.itemUsed(hand);
-						
-						// If the throw was successful, tell the server to perform the throw as well
-						WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(hand,mc.player.getDeltaMovement()));
-						return;
-					}
-				}
-	        } else {
-	        	throwDelay -= ticks;
-	        }
-		}
-	}
-    
+	    
     @SubscribeEvent
     public static void onTagsUpdated(TagsUpdatedEvent event) {
 		ITagCollection<Item> itemtags = ItemTags.getAllTags();
@@ -131,21 +98,23 @@ public class ModEventSubscriber {
 		World level = event.getWorld();
 		ItemStack itemStack = event.getItemStack();
 		Item item = itemStack.getItem();
-		PlayerEntity player = event.getPlayer();
 		ITagCollection<Item> tags = ItemTags.getAllTags();
 		
 		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to right click, or if the held item is a vanilla throwable, then try to throw the held item.
 		// BaseballItems handle throwing themselves through Item.use()
-		if ((ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey() && tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && 
-				!(item instanceof BaseballItem) && item != Items.EGG) || (tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
+		boolean isNewThrowable = tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && !(item instanceof BaseballItem) && item != Items.EGG;
+		if (isNewThrowable || (tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
-				ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement());
+				if (!isNewThrowable || ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey()) {// Make sure the throwkey is pressed when it is a new throwable
+				PlayerEntity player = event.getPlayer();
+				ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement(), Settings.throwUp);
 				if (result.consumesAction()) {
 					// If the throw was successful, tell the server to perform the throw as well
-					WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement()));
+					WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement(), Settings.throwUp));
 					
 					event.setCanceled(true);
 					event.setCancellationResult(result);
+				}
 				}
 			} else {
 				event.setCanceled(true);

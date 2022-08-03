@@ -21,9 +21,15 @@ import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.vector.*;
 import net.minecraft.world.World;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 
 /** Adds bouncing logic (direction & speed) and handles being hit */
+@OnlyIn(
+		   value = Dist.CLIENT,
+		   _interface = IRendersAsItem.class
+		)
 public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAdditionalSpawnData , IRendersAsItem {
 	/** Chance of bouncing towards a living entity */
 	public final float ricochetChance = 0.0F;//Turned off for now as shooting towards a target needs more tweaking than expected

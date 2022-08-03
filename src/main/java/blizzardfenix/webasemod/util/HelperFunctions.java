@@ -13,6 +13,7 @@ import blizzardfenix.webasemod.entity.PickableEnderPearlEntity;
 import blizzardfenix.webasemod.entity.PickableExperienceBottleEntity;
 import blizzardfenix.webasemod.entity.PickablePotionEntity;
 import blizzardfenix.webasemod.entity.PickableSnowballEntity;
+import blizzardfenix.webasemod.entity.ThrowableBallEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import net.minecraft.entity.item.EnderPearlEntity;
@@ -48,7 +49,7 @@ public class HelperFunctions {
 	 * @param hand
 	 * @return
 	 */
-	public static ActionResult<ItemStack> throwBall(World level, PlayerEntity player, ItemStack itemstack, @Nullable ProjectileItemEntity throwableentity, Vector3d playerVelocity) {		
+	public static ActionResult<ItemStack> throwBall(World level, PlayerEntity player, ItemStack itemstack, @Nullable ProjectileItemEntity throwableentity, Vector3d playerVelocity, Boolean throwUp) {
 		SoundEvent soundEvent;
 		Item item = itemstack.getItem();
 		if(item == Items.ENDER_PEARL)
@@ -73,7 +74,7 @@ public class HelperFunctions {
 				bouncyBallEntity = (BouncyBallEntity) throwableentity;				
 			throwableentity.setItem(itemstack);
 			player.setDeltaMovement(playerVelocity);
-			if (Settings.throwUp && player.getMainHandItem().getItem() instanceof BaseballBat) {
+			if (throwUp && player.getMainHandItem().getItem() instanceof BaseballBat) {
 				// Aims the ball at 45 degree angle if looking straight ahead, otherwise converges to throwing straight
 				float pitchrot = player.xRot - 0.5F * (90 - Math.abs(player.xRot));
 				float inaccuracy = isBouncyBall ? bouncyBallEntity.baseInaccuracy + 0.5F : 1.0F;
@@ -113,7 +114,7 @@ public class HelperFunctions {
 		return ActionResult.sidedSuccess(itemstack, level.isClientSide());
 	}
 
-	public static ActionResultType tryThrow(World level, PlayerEntity player, Hand hand, Vector3d playerVelocity) {
+	public static ActionResultType tryThrow(World level, PlayerEntity player, Hand hand, Vector3d playerVelocity, Boolean throwUp) {
 		ItemStack itemstack = player.getItemInHand(hand);
 		Item item = itemstack.getItem();
 		if (!itemstack.isEmpty()) {
@@ -134,7 +135,7 @@ public class HelperFunctions {
 							itementity = new PickablePotionEntity(level, player);
 						else
 							itementity = new PickableSnowballEntity(level, player);
-						result = HelperFunctions.throwBall(level, player, itemstack, itementity, playerVelocity).getResult();
+						result = HelperFunctions.throwBall(level, player, itemstack, itementity, playerVelocity, throwUp).getResult();
 					} else {
 						return item.use(level, player, hand).getResult();
 					}
@@ -146,7 +147,7 @@ public class HelperFunctions {
 						throwableentity = new BouncyBallEntity(ModEntityTypes.SMALL_THROWABLE_ITEM_ENTITY.get(), level, player);
 					} else
 						throwableentity = new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), level, player);
-					result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, playerVelocity).getResult();
+					result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, playerVelocity, throwUp).getResult();
 				}
 	
 				if(result.consumesAction() && result.shouldSwing())
