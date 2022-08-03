@@ -94,7 +94,7 @@ public class ModEventSubscriber {
     	
     	// Set the ability for dispensers to shoot balls
 		itemtags.getTag(throwableItems).forEach((item) -> {
-    		if (item == Items.FIRE_CHARGE) return;// Fireballs are the only throwable item that already have different dispenser behaviour
+    		if (item == Items.FIRE_CHARGE || item == Items.EGG) return;// Fireballs are the only throwable item that already have different dispenser behaviour
     		DispenserBlock.registerBehavior(item, new AbstractProjectileDispenseBehavior() {
     			protected Projectile getProjectile(Level world, Position pos, ItemStack itemstack) {
     				return Util.make(
@@ -139,7 +139,7 @@ public class ModEventSubscriber {
 		// or if the held item is a vanilla throwable and those should be overridden, then try to throw the held item.
 		// BaseballItems handle throwing themselves through Item.use()
 		if ((ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey() && tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "throwable_items"))).contains(item) && 
-				!(item instanceof BaseballItem)) || 
+				!(item instanceof BaseballItem) && item != Items.EGG) || 
 				(tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "vanilla_throwables"))).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
 				InteractionResult result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement());
