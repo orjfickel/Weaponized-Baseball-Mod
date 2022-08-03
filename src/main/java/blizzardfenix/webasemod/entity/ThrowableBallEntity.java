@@ -196,9 +196,9 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			properties = ModEntityTypes.COAL_PROPERTIES;
 		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(item))
 			properties = ModEntityTypes.NUGGET_PROPERTIES;
-		else if (item == Items.TURTLE_EGG)
+		else if (item == Items.TURTLE_EGG || tags.getTag(tags.createTagKey(new ResourceLocation("forge","eggs"))).contains(item))
 			properties = ModEntityTypes.EGG_PROPERTIES;
-		else if (item == Items.SLIME_BALL)
+		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","slimeballs"))).contains(item))
 			properties = ModEntityTypes.SLIMEBALL_PROPERTIES;
 		else if (item == Items.FIRE_CHARGE)
 			properties = ModEntityTypes.FIREBALL_PROPERTIES;
@@ -799,8 +799,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				}
 			}
 		}
-		
-		if (this.getItem().getItem() == Items.TURTLE_EGG) {
+
+		ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
+		Item item = this.getItem().getItem();
+		if (item == Items.TURTLE_EGG || tags.getTag(tags.createTagKey(new ResourceLocation("forge","eggs"))).contains(item)) {
 			this.setDeltaMovement(Vec3.ZERO);
 			this.destroy(RemovalReason.KILLED);
 			return false;
