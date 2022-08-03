@@ -232,7 +232,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			if ((this.isOnGround() || this.isInWater()) && motionvec.lengthSqr() < this.idleSpeedSqr) {
                 // If idle for long enough, destroy
 				if(this.tickCount > this.droptimer + this.idleTime) {
-					this.destroy(RemovalReason.DISCARDED);
+					if (ServerConfig.drop_balls.get())
+						this.dropSelf();
+					else
+						this.remove(RemovalReason.DISCARDED);
 				}
                 // Reset the combo
                 this.comboDmg = 0;
@@ -759,7 +762,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			impactspeed = Math.abs((float)prevvel.z);
 			break;
 		};
-		if (speed > 0.3F)
+		if (impactspeed > 0.3F)
 			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
 		
 		if (!this.level.isClientSide) {
@@ -770,9 +773,15 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			} else if (blockhit instanceof TurtleEggBlock && ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
 				// If mob griefing is allowed, try to destroy an egg by mocking a player falling on it.
 				blockhit.fallOn(this.level, hitblockstate, blockPos, level.players().get(0), impactspeed);
-			} else if ((blockhit instanceof AbstractGlassBlock || (blockhit instanceof IronBarsBlock && blockhit != Blocks.IRON_BARS))
-                    && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * speed > 0.5F) {
+			} else if ((blockhit instanceof AbstractGlassBlock)
+                    && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * impactspeed > 0.7F) {
 				this.level.destroyBlock(blockPos, false);
+				this.setDeltaMovement(this.getDeltaMovement().scale(0.4D));
+				return false;
+			} else if (blockhit instanceof IronBarsBlock && blockhit != Blocks.IRON_BARS
+                    && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * impactspeed > 0.55F) {
+				this.level.destroyBlock(blockPos, false);
+				this.setDeltaMovement(this.getDeltaMovement().scale(0.65D));
 				return false;
 			} else if (blockhit instanceof NoteBlock) {
 				this.triggerNoteblock(hitblockstate, blockPos, blockhit);

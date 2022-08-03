@@ -7,7 +7,7 @@ public class ClientConfig {
 	public static final ForgeConfigSpec SPEC;
 	
 	static {
-		BUILDER.push("Client config for the Bouncy Throwables Mod");
+		BUILDER.push("Client config for the Weaponised Baseball Mod");
 		
 		BUILDER.pop();
 		SPEC = BUILDER.build();
