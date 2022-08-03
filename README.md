@@ -11,9 +11,10 @@ Release trailer: https://youtu.be/b708a8nTjWY
 
 ## Throwing mechanics
 
-* Pressing a dedicated button (by default the back quote (\`)) switches between tee-up-mode, in which you automatically throw balls up softly, making them easier to hit with a bat.
+* Pressing a dedicated button while holding a bat (by default the back quote (`)) switches between tee-up-mode, in which you automatically throw balls up softly, making them easier to hit with a bat. Note that this only works by holding a bat in your main hand and a throwable in your off-hand
 * Crouching causes you to not pick up balls and to throw them slower.
 * Throwables are now affected by the player’s velocity at the moment of throwing.
+* You can set a custom key as the throw key, so that you reduce the risk of accidentally throwing away your diamonds
 
 ## Tools
 
@@ -31,8 +32,17 @@ Release trailer: https://youtu.be/b708a8nTjWY
 * Mobs will push light throwables out of the way, but will attempt to walk over heavy ones.
 * Throwables can activate buttons and trigger blocks, break through glass, slide over ice, etc.
 * The bug where item projectiles are slightly off-center compared to their bounding boxes is fixed. (https://bugs.mojang.com/browse/MC-158734). (Sorry for this realisation)
-* Some features can be toggled in the client and server configs (mostly for compatibility)
+* With the commands "throwable bounciness x" or "throwable friction x" you can play around with setting the bounciness and friction to whatever you like
 
+## Config
+
+Some features can be toggled in the client and server configs (see also the configured mod):
+* How many ticks a throwable can be idle before despawning. Default value is 1200 (2 min).
+* Enable throwables dropping themselves after the idle time is over.
+* Disable overriding the vanilla throwables behaviour to make them hittable with bats.
+* Turn on lite mode which disables slow collisions and throwable on throwable collisions.
+* Enable overriding the throwable item sprite renderer to fix the sprite centering bug. (Note that you cannot turn this off in 1.19 since configs are no longer loaded before the renderers are registered)
+    
 ## What to know for survival
 
 Baseballs in relation to arrows are slightly less accurate, do a little more damage when hit with an iron bat, and have slightly more range. 
@@ -63,8 +73,8 @@ Catcher’s gloves can be crafted simply with a bunch of leather, and one piece 
 <details>
   <summary>Expand</summary>
   
-* Turtle eggs
-* Slimeballs
+* Any eggs
+* Any slimeballs
 * Fire charges
 * Baseballs
 * Dirtballs
