@@ -16,7 +16,7 @@ public class SetThrowableVarCommand {
         dispatcher.register(Commands.literal("throwable").requires((source) -> {
             return source.hasPermission(2);
         }).then(Commands.literal("bounciness")
-        		.then(Commands.argument("value",FloatArgumentType.floatArg(0.0F,1.0F))
+        		.then(Commands.argument("value",FloatArgumentType.floatArg())
         			.executes((command) -> {
 			            return setBounciness(command.getSource(), command.getArgument("value", Float.class));
         }))));
@@ -24,7 +24,7 @@ public class SetThrowableVarCommand {
         dispatcher.register(Commands.literal("throwable").requires((source) -> {
             return source.hasPermission(2);
         }).then(Commands.literal("friction")
-        		.then(Commands.argument("value",FloatArgumentType.floatArg(0.0F,1.0F))
+        		.then(Commands.argument("value",FloatArgumentType.floatArg())
         			.executes((command) -> {
 			            return setFriction(command.getSource(), command.getArgument("value", Float.class));
         }))));

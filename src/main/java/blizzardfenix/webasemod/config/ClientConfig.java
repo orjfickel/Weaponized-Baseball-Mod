@@ -9,7 +9,7 @@ public class ClientConfig {
 	public static final ForgeConfigSpec.ConfigValue<Boolean> sprite_fix;
 	
 	static {
-		BUILDER.push("Client config for the Bouncy Throwables Mod");
+		BUILDER.push("Client config for the Weaponised Baseball Mod");
 
 		sprite_fix = BUILDER.comment("Override the throwable item sprite renderer to fix the sprite centering bug. True by default.").define("Sprite Fix", true);
 		

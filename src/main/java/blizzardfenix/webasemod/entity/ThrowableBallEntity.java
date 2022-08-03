@@ -194,9 +194,9 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			properties = ModEntityTypes.COAL_PROPERTIES;
 		else if (tags.getTag(new ResourceLocation("forge","nuggets")).contains(item))
 			properties = ModEntityTypes.NUGGET_PROPERTIES;
-		else if (item == Items.TURTLE_EGG)
+		else if (item == Items.TURTLE_EGG || tags.getTag(new ResourceLocation("forge","eggs")).contains(item))
 			properties = ModEntityTypes.EGG_PROPERTIES;
-		else if (item == Items.SLIME_BALL)
+		else if (tags.getTag(new ResourceLocation("forge","slimeballs")).contains(item))
 			properties = ModEntityTypes.SLIMEBALL_PROPERTIES;
 		else if (item == Items.FIRE_CHARGE)
 			properties = ModEntityTypes.FIREBALL_PROPERTIES;
@@ -230,7 +230,10 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			if ((this.isOnGround() || this.isInWater()) && motionvec.lengthSqr() < this.idleSpeedSqr) {
 				// If idle for long enough, destroy
 				if(this.tickCount > this.droptimer + this.idleTime) {
-					this.destroy();
+					if (ServerConfig.drop_balls.get())
+						this.dropSelf();
+					else
+						this.remove();
 				}
 				// Reset the combo
 				this.comboDmg = 0;
@@ -763,7 +766,7 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			impactspeed = Math.abs((float)prevvel.z);
 			break;
 		};
-		if (speed > 0.3F)
+		if (impactspeed > 0.3F)
 			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
 		
 		if (!this.level.isClientSide) {
@@ -774,9 +777,15 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 			} else if (blockhit instanceof TurtleEggBlock && ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
 				// If mob griefing is allowed, try to destroy an egg by mocking a player falling on it.
 				blockhit.fallOn(this.level, blockPos, level.players().get(0), impactspeed);
-			} else if ((blockhit instanceof AbstractGlassBlock || (blockhit instanceof PaneBlock && blockhit != Blocks.IRON_BARS))
-					 && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * speed > 0.5F) {
+			} else if ((blockhit instanceof AbstractGlassBlock)
+                    && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * impactspeed > 0.7F) {
 				this.level.destroyBlock(blockPos, false);
+				this.setDeltaMovement(this.getDeltaMovement().scale(0.4D));
+				return false;
+			} else if (blockhit instanceof PaneBlock && blockhit != Blocks.IRON_BARS
+                    && ForgeEventFactory.getMobGriefingEvent(this.level, this) && random.nextFloat() * this.mass * impactspeed > 0.55F) {
+				this.level.destroyBlock(blockPos, false);
+				this.setDeltaMovement(this.getDeltaMovement().scale(0.65D));
 				return false;
 			} else if (blockhit instanceof NoteBlock) {
 				this.triggerNoteblock(hitblockstate, blockPos, blockhit);
@@ -793,8 +802,10 @@ public abstract class ThrowableBallEntity extends ProjectileItemEntity implement
 				}
 			}
 		}
-		
-		if (this.getItem().getItem() == Items.TURTLE_EGG) {
+
+		ITagCollection<Item> tags = ItemTags.getAllTags();
+		Item item = this.getItem().getItem();
+		if (item == Items.TURTLE_EGG || tags.getTag(new ResourceLocation("forge","eggs")).contains(item)) {
 			this.setDeltaMovement(Vector3d.ZERO);
 			this.destroy();
 			return false;
