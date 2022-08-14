@@ -16,14 +16,16 @@ public class WebaseMessage {
 	private InteractionHand hand;
 	private Vec3 shooterVelocity;
 	private Boolean throwUp;
+	private Boolean tryUse;
 
 	public WebaseMessage() {
 	}
 
-	public WebaseMessage(InteractionHand hand, @Nullable Vec3 shooterVelocity, Boolean throwUp) {
+	public WebaseMessage(InteractionHand hand, @Nullable Vec3 shooterVelocity, Boolean throwUp, Boolean tryUse) {
 		this.hand = hand;
 		this.shooterVelocity = shooterVelocity;
 		this.throwUp = throwUp;
+		this.tryUse = tryUse;
 	}
 
 	public static void encode(WebaseMessage message, FriendlyByteBuf buffer) {
@@ -31,17 +33,20 @@ public class WebaseMessage {
 		buffer.writeFloat((float) message.shooterVelocity.x);
 		buffer.writeFloat((float) message.shooterVelocity.y);
 		buffer.writeFloat((float) message.shooterVelocity.z);
-		buffer.writeBoolean(Settings.throwUp);
+		buffer.writeByte((byte) (((message.throwUp ? 1 : 0) << 1) + (message.tryUse ? 1 : 0)));
 	}
 
 	public static WebaseMessage decode(FriendlyByteBuf buffer) {
-		return new WebaseMessage(buffer.readEnum(InteractionHand.class), new Vec3(buffer.readFloat(), buffer.readFloat(), buffer.readFloat()), buffer.readBoolean());
+		InteractionHand hand = buffer.readEnum(InteractionHand.class);
+		Vec3 shooterVelocity = new Vec3(buffer.readFloat(), buffer.readFloat(), buffer.readFloat());
+		Byte booleans = buffer.readByte();
+		return new WebaseMessage(hand, shooterVelocity, ((booleans & 0b010) >> 1) == 1, (booleans & 0b001) == 1);
 	}
 
 	public static void handle(WebaseMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
 		contextSupplier.get().enqueueWork(() -> {
 			ServerPlayer player = contextSupplier.get().getSender();
-			HelperFunctions.tryThrow(player.getCommandSenderWorld(), player, message.hand, message.shooterVelocity, message.throwUp);
+			HelperFunctions.tryThrow(player.getCommandSenderWorld(), player, message.hand, message.shooterVelocity, message.throwUp, message.tryUse);
 		});
 		contextSupplier.get().setPacketHandled(true);
 	}

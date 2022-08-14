@@ -7,6 +7,7 @@ import blizzardfenix.webasemod.BaseballMod;
 import blizzardfenix.webasemod.commands.SetThrowableVarCommand;
 import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.entity.BouncyBallEntity;
+import blizzardfenix.webasemod.entity.PickableSnowballEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.init.ModKeyBindings;
 import blizzardfenix.webasemod.items.BaseballItem;
@@ -19,19 +20,23 @@ import net.minecraft.client.Timer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Position;
 import net.minecraft.core.dispenser.AbstractProjectileDispenseBehavior;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraftforge.api.distmarker.Dist;
@@ -41,12 +46,15 @@ import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import net.minecraftforge.registries.tags.ITagManager;
 import net.minecraftforge.server.command.ConfigCommand;
 
@@ -61,7 +69,6 @@ public class ModEventSubscriber {
         ConfigCommand.register(event.getDispatcher());
 		LOGGER.info("Registered commands");
     }
-	
     
     @SubscribeEvent
     public static void onTagsUpdated(TagsUpdatedEvent event) {
@@ -71,7 +78,9 @@ public class ModEventSubscriber {
     	
     	// Set the ability for dispensers to shoot balls
 		itemtags.getTag(throwableItems).forEach((item) -> {
-    		if (item == Items.FIRE_CHARGE) return;// Fireballs are the only throwable item that already have different dispenser behaviour
+			// Fireballs and eggs already have different dispenser behaviour. Also ignore any throwable items from other mods, as they might have different use functionality defined already.
+			String namespace = ForgeRegistries.ITEMS.getKey(item).getNamespace();
+    		if (item == Items.FIRE_CHARGE || item == Items.EGG || (namespace != "minecraft" && !BaseballMod.MODID.equals(namespace))) return;
     		DispenserBlock.registerBehavior(item, new AbstractProjectileDispenseBehavior() {
     			protected Projectile getProjectile(Level world, Position pos, ItemStack itemstack) {
     				return Util.make(
@@ -110,25 +119,25 @@ public class ModEventSubscriber {
 		ItemStack itemStack = event.getItemStack();
 		Item item = itemStack.getItem();
 		ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
-		
+				
 		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to the use key, 
 		// or if the held item is a vanilla throwable and those should be overridden, then try to throw the held item.
 		// BaseballItems handle throwing themselves through Item.use()
-        boolean isNewThrowable = (tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "throwable_items"))).contains(item) && !(item instanceof BaseballItem) && item != Items.EGG);
-        if (isNewThrowable || 
-				(tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "vanilla_throwables"))).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
+		boolean isVanillaThrowable = tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "vanilla_throwables"))).contains(item);
+		boolean isNewThrowable = (tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "throwable_items"))).contains(item) && !(item instanceof BaseballItem) && !isVanillaThrowable);
+		if (isNewThrowable || (isVanillaThrowable && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
-				if (!isNewThrowable || ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey()) {// Make sure the throwkey is pressed when it is a new throwable
-
+				if (true) {// Make sure the throwkey is pressed when it is a new throwable
 					Player player = event.getEntity();
-					InteractionResult result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement(), Settings.throwUp);
+
+					InteractionResult result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement(), Settings.throwUp, true);
 					if (result.consumesAction()) {
-						// If the throw was successful, tell the server to perform the throw as well
-						WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement(), Settings.throwUp));
+						// If the throw was successful, tell the server to perform the throw as well. Necessary because the server doesn't know if the throw key is the same as the use key.
+						WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement(), Settings.throwUp, true));
 						
-						event.setCanceled(true);
-						event.setCancellationResult(result);
 					}
+					event.setCanceled(true);
+					event.setCancellationResult(result);
 				}
 			} else {
 				event.setCanceled(true);

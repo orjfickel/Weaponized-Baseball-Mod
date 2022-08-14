@@ -15,7 +15,10 @@ import blizzardfenix.webasemod.entity.PickablePotionEntity;
 import blizzardfenix.webasemod.entity.PickableSnowballEntity;
 import blizzardfenix.webasemod.entity.ThrowableBallEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
+import blizzardfenix.webasemod.init.ModKeyBindings;
+import blizzardfenix.webasemod.items.BaseballItem;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceLocation;
@@ -75,7 +78,6 @@ public class HelperFunctions {
 			if (isBouncyBall)
 				bouncyBallEntity = (BouncyBallEntity) throwableentity;				
 			throwableentity.setItem(itemstack);
-			player.setDeltaMovement(playerVelocity);
 			if (throwUp && player.getMainHandItem().getItem() instanceof BaseballBat) {
 				// Aims the ball at 45 degree angle if looking straight ahead, otherwise converges to throwing straight
 				float pitchrot = player.getXRot() - 0.5F * (90 - Math.abs(player.getXRot()));
@@ -116,7 +118,7 @@ public class HelperFunctions {
 		return InteractionResultHolder.sidedSuccess(itemstack, level.isClientSide());
 	}
 
-	public static InteractionResult tryThrow(Level level, Player player, InteractionHand hand, Vec3 playerVelocity, Boolean throwUp) {
+	public static InteractionResult tryThrow(Level level, Player player, InteractionHand hand, Vec3 playerVelocity, Boolean throwUp, Boolean tryUse) {
 		ItemStack itemstack = player.getItemInHand(hand);
 		if (!itemstack.isEmpty()) {
 			Item item = itemstack.getItem();
@@ -124,6 +126,8 @@ public class HelperFunctions {
 			boolean isExistingThrowable = tags.getTag(tags.createTagKey(new ResourceLocation("webasemod","vanilla_throwables"))).contains(item);
 			if (tags.getTag(tags.createTagKey(new ResourceLocation("webasemod", "throwable_items"))).contains(item) || isExistingThrowable) {
 				InteractionResult result;
+				if (!level.isClientSide) player.setDeltaMovement(playerVelocity); // Set the player velocity on the server, so that it will affect the throwable's shooting velocity
+				
 				if (isExistingThrowable) {
 					if (ServerConfig.override_vanilla_throwables.get()) {
 						ThrowableItemProjectile itementity;
@@ -142,14 +146,59 @@ public class HelperFunctions {
 						return item.use(level, player, hand).getResult();
 					}
 				} else {
-					BouncyBallEntity throwableentity;
-					if (item == Items.FIRE_CHARGE) {
-						throwableentity = new BouncyFireBallEntity(ModEntityTypes.BOUNCY_FIREBALL_ENTITY.get(), level, player);
-					} else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(item)) {
-						throwableentity = new BouncyBallEntity(ModEntityTypes.SMALL_THROWABLE_ITEM_ENTITY.get(), level, player);
-					} else
-						throwableentity = new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), level, player);
-					result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, playerVelocity, throwUp).getResult();
+					// Try to just use the item first. If this does not consume the action, continue throwing
+					InteractionResultHolder<ItemStack> interactionresultholder = InteractionResultHolder.pass(itemstack);
+					if (!(item instanceof BaseballItem)) {// Code adapted from the vanilla minecraft way of calling itemstack.use on the client & server
+						interactionresultholder = itemstack.use(level, player, hand);
+						ItemStack newItemStack = interactionresultholder.getObject();
+						if (!level.isClientSide()) {
+							int i = itemstack.getCount();
+							int j = itemstack.getDamageValue();
+							
+							if (!(newItemStack == itemstack && newItemStack.getCount() == i && newItemStack.getUseDuration() <= 0 && newItemStack.getDamageValue() == j) && 
+									!(interactionresultholder.getResult() == InteractionResult.FAIL && newItemStack.getUseDuration() > 0 && !player.isUsingItem())) {
+								if (itemstack != newItemStack) {
+									player.setItemInHand(hand, newItemStack);
+								}
+	
+								if (player.isCreative()) {
+									newItemStack.setCount(i);
+									if (newItemStack.isDamageableItem() && newItemStack.getDamageValue() != j) {
+										newItemStack.setDamageValue(j);
+									}
+								}
+	
+								if (newItemStack.isEmpty()) {
+									player.setItemInHand(hand, ItemStack.EMPTY);
+								}
+	
+								if (!player.isUsingItem()) {
+									player.inventoryMenu.sendAllDataToRemote();
+								}
+							}
+						} else {
+							if (newItemStack != itemstack) {
+								player.setItemInHand(hand, newItemStack);
+								if (newItemStack.isEmpty())
+									net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, itemstack, hand);
+							}
+						}
+					}
+					
+					// If we actually used the item, or the throw key is not bound to the use key while we are trying to use the item, return
+					if (interactionresultholder.getResult().consumesAction() || (tryUse && ModKeyBindings.throwKey.getKey() != Minecraft.getInstance().options.keyUse.getKey())) {
+						result = interactionresultholder.getResult();
+					} else {
+						// Actually throw it
+						BouncyBallEntity throwableentity;
+						if (item == Items.FIRE_CHARGE) {
+							throwableentity = new BouncyFireBallEntity(ModEntityTypes.BOUNCY_FIREBALL_ENTITY.get(), level, player);
+						} else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(item)) {
+							throwableentity = new BouncyBallEntity(ModEntityTypes.SMALL_THROWABLE_ITEM_ENTITY.get(), level, player);
+						} else
+							throwableentity = new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), level, player);
+						result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, playerVelocity, throwUp).getResult();
+					}
 				}
 	
 				if(result.consumesAction() && result.shouldSwing())

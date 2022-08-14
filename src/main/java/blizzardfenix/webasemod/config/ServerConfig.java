@@ -12,7 +12,7 @@ public class ServerConfig {
 	public static final ForgeConfigSpec.ConfigValue<Boolean> drop_balls;
 	
 	static {
-		BUILDER.push("Server config for the Weaponised Baseball Mod");
+		BUILDER.push("Server config for the Weaponized Baseball Mod");
 
 		lite_mode = BUILDER.comment("Turn on lite mode which disables slow collisions and throwable on throwable collisions.").define("Lite mode", false);
 
