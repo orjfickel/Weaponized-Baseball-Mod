@@ -8,13 +8,11 @@ import blizzardfenix.webasemod.commands.SetThrowableVarCommand;
 import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.entity.BouncyBallEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
-import blizzardfenix.webasemod.init.ModKeyBindings;
 import blizzardfenix.webasemod.items.BaseballItem;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import blizzardfenix.webasemod.util.HelperFunctions;
 import blizzardfenix.webasemod.util.Settings;
 import net.minecraft.block.DispenserBlock;
-import net.minecraft.client.Minecraft;
 import net.minecraft.dispenser.IPosition;
 import net.minecraft.dispenser.ProjectileDispenseBehavior;
 import net.minecraft.entity.Entity;
@@ -30,6 +28,7 @@ import net.minecraft.tags.ITagCollection;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Util;
 import net.minecraft.world.World;
@@ -39,6 +38,7 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.server.command.ConfigCommand;
 
 @EventBusSubscriber(modid = BaseballMod.MODID)
@@ -52,7 +52,7 @@ public class ModEventSubscriber {
         ConfigCommand.register(event.getDispatcher());
 		LOGGER.info("Registered commands");
     }
-	    
+
     @SubscribeEvent
     public static void onTagsUpdated(TagsUpdatedEvent event) {
 		ITagCollection<Item> itemtags = ItemTags.getAllTags();
@@ -60,7 +60,9 @@ public class ModEventSubscriber {
     	
     	// Set the ability for dispensers to shoot balls
 		throwableItems.getValues().forEach((item) -> {
-    		if (item == Items.FIRE_CHARGE || item == Items.EGG) return;// Fireballs are the only throwable item that already have different dispenser behaviour
+			// Fireballs and eggs already have different dispenser behaviour. Also ignore any throwable items from other mods, as they might have different use functionality defined already.
+			String namespace = ForgeRegistries.ITEMS.getKey(item).getNamespace();
+    		if (item == Items.FIRE_CHARGE || item == Items.EGG || (namespace != "minecraft" && !BaseballMod.MODID.equals(namespace))) return;
     		DispenserBlock.registerBehavior(item, new ProjectileDispenseBehavior() {
     			protected ProjectileEntity getProjectile(World world, IPosition pos, ItemStack itemstack) {
     				return Util.make(
@@ -102,19 +104,22 @@ public class ModEventSubscriber {
 		
 		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to right click, or if the held item is a vanilla throwable, then try to throw the held item.
 		// BaseballItems handle throwing themselves through Item.use()
-		boolean isNewThrowable = tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && !(item instanceof BaseballItem) && item != Items.EGG;
-		if (isNewThrowable || (tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item) && ServerConfig.override_vanilla_throwables.get())) {
+		boolean isVanillaThrowable = tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item);
+		boolean isNewThrowable = (tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && !(item instanceof BaseballItem) && !isVanillaThrowable);
+		if (isNewThrowable || (isVanillaThrowable && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
-				if (!isNewThrowable || ModKeyBindings.throwKey.getKey() == Minecraft.getInstance().options.keyUse.getKey()) {// Make sure the throwkey is pressed when it is a new throwable
-				PlayerEntity player = event.getPlayer();
-				ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement(), Settings.throwUp);
-				if (result.consumesAction()) {
-					// If the throw was successful, tell the server to perform the throw as well
-					WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement(), Settings.throwUp));
-					
+				if (true) {// Make sure the throwkey is pressed when it is a new throwable
+					PlayerEntity player = event.getPlayer();
+                    Hand hand = event.getHand();
+
+					ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement(), Settings.throwUp, true);
+					if (result.consumesAction()) {
+						// If the throw was successful, tell the server to perform the throw as well. Necessary because the server doesn't know if the throw key is the same as the use key.
+						WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement(), Settings.throwUp, true));
+						
+					}
 					event.setCanceled(true);
 					event.setCancellationResult(result);
-				}
 				}
 			} else {
 				event.setCanceled(true);

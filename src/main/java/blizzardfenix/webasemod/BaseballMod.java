@@ -8,7 +8,6 @@ import blizzardfenix.webasemod.config.ClientConfig;
 import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.init.ModItems;
-import blizzardfenix.webasemod.server.ModEventSubscriber;
 import blizzardfenix.webasemod.server.WebasePacketHandler;
 import net.minecraft.util.Timer;
 import net.minecraftforge.eventbus.api.IEventBus;

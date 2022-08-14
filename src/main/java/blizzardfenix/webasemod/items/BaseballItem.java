@@ -32,7 +32,7 @@ public class BaseballItem extends Item {
 			ActionResultType result = HelperFunctions.throwBall(level, player, itemstack, throwableentity, player.getDeltaMovement(), Settings.throwUp).getResult();
 			if (result.consumesAction()) {			
 				// If the throw was successful, tell the server to perform the throw as well
-				WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(hand, player.getDeltaMovement(), Settings.throwUp));
+                WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(hand, player.getDeltaMovement(), Settings.throwUp, false));
 			}
 		}
 		
