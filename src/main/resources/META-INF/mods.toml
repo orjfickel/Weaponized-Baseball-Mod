@@ -1,14 +1,14 @@
 modLoader="javafml"
 loaderVersion="[40,)"
 license="LGPLv3"
-#issueTrackerURL=""
+issueTrackerURL="https://github.com/BlizzardFenix/Weaponized-Baseball-Mod/issues"
 showAsResourcePack=false
 [[mods]] #mandatory
 	modId="webasemod"
 	version="${file.jarVersion}"
-	displayName="Weaponised Baseball Mod"
-	updateJSONURL="https://raw.githubusercontent.com/BlizzardFenix/Weaponised-Baseball-Mod/1.16/UpdateChecker.json"
-	displayURL="https://www.curseforge.com/minecraft/mc-mods/weaponised-baseball-mod"
+	displayName="Weaponized Baseball Mod"
+	updateJSONURL="https://raw.githubusercontent.com/BlizzardFenix/Weaponized-Baseball-Mod/1.16/UpdateChecker.json"
+	displayURL="https://www.curseforge.com/minecraft/mc-mods/weaponized-baseball-mod"
 	logoFile="banner.png"
 	#credits=""
 	authors="BlizzardFenix"

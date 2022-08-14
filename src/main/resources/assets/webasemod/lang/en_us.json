@@ -16,12 +16,14 @@
 	"item.webasemod.iron_bat": "Iron Bat",
 	"item.webasemod.netherite_bat": "Netherite Bat",
 	"item.webasemod.diamond_bat": "Diamond Bat",
-	"itemGroup.webasemod": "Weaponised Baseball Mod",
+	"itemGroup.webasemod": "Weaponized Baseball",
 	
-	"key.category.webasemod": "Weaponised Baseball Mod",
+	"key.category.webasemod": "Weaponized Baseball",
 	"key.webasemod.throwuptoggle": "Toggle throwing upwards",
 	"key.webasemod.throw": "Dedicated key for throwing stuff",
 	
 	"death.attack.ball":  "%1$s couldn't think fast and got pummeled by %2$s",
-	"death.attack.ball.item":  "%1$s couldn't think fast and got pummeled by %2$s using %3$s"
+	"death.attack.ball.item":  "%1$s couldn't think fast and got pummeled by %2$s using %3$s",
+	
+	"item.webasemod.throwable": "Throwable"
 }

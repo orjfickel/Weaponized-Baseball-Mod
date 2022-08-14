@@ -1,0 +1,29 @@
+{
+	"item.webasemod.basic_baseball": "Basic Honkbal",
+	"item.webasemod.baseball_core": "Honkbal Kern",
+	"item.webasemod.baseball_half": "Halve Honkbal",
+	"item.webasemod.cork": "Kurk",
+	
+	"item.webasemod.dirtball": "Aardebal",
+	"item.webasemod.stoneball": "Steenbal",
+	"item.webasemod.corkball": "Kurkbal",
+	
+	"item.webasemod.catcher_glove": "Honkbal Handschoen",
+	
+	"item.webasemod.wooden_bat": "Houten Knuppel",
+	"item.webasemod.stone_bat": "Steenen Knuppel",
+	"item.webasemod.golden_bat": "Gouden Knuppel",
+	"item.webasemod.iron_bat": "Ijzeren Knuppel",
+	"item.webasemod.netherite_bat": "Netherite Knuppel",
+	"item.webasemod.diamond_bat": "Diamanten Knuppel",
+	"itemGroup.webasemod": "Weaponized Baseball",
+	
+	"key.category.webasemod": "Weaponized Baseball",
+	"key.webasemod.throwuptoggle": "Toggle of je de bal op gooit",
+	"key.webasemod.throw": "Speciale toets om dingen te gooien",
+	
+	"death.attack.ball":  "%1$s kon niet snel genoeg denken en werdt bekogeld door %2$s",
+	"death.attack.ball.item":  "%1$s kon niet snel genoeg denken en werdt bekogeld door %2$s met %3$s",
+	
+	"item.webasemod.throwable": "Throwable"
+}

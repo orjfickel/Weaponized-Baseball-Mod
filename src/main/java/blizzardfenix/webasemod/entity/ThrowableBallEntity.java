@@ -169,7 +169,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		this.maxBallCramming = this.level.getGameRules().getInt(GameRules.RULE_MAX_ENTITY_CRAMMING);
 		this.ballEntityHits = new UUID[this.maxBallCramming];
 		if (this.Pickup == null) {
-			this.Pickup = Pickup.DISALLOWED;
+			this.Pickup = AbstractArrow.Pickup.DISALLOWED;
 		}
 		this.idleTime = ServerConfig.throwable_idle_time.get();
 

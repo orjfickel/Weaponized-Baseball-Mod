@@ -88,31 +88,31 @@ public class ModEntityTypes {
 			.sized(0.35F, 0.35F)
 			.build(new ResourceLocation(BaseballMod.MODID, MOCKARROW_NAME).toString()));
 	
-	public static final String PICKABLE_SNOWBALL_NAME = "pickable_snowball";
+	public static final String PICKABLE_SNOWBALL_NAME = "snowball_pickable";
 	public static final RegistryObject<EntityType<PickableSnowballEntity>> PICKABLE_SNOWBALL_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_SNOWBALL_NAME, () -> EntityType.Builder.<PickableSnowballEntity>
 				of(PickableSnowballEntity::new, MobCategory.MISC)
 				.sized(0.34F, 0.34F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_SNOWBALL_NAME).toString()));
-	public static final String PICKABLE_EGG_NAME = "pickable_egg";
+	public static final String PICKABLE_EGG_NAME = "egg_pickable";
 	public static final RegistryObject<EntityType<PickableEggEntity>> PICKABLE_EGG_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_EGG_NAME, () -> EntityType.Builder.<PickableEggEntity>
 				of(PickableEggEntity::new, MobCategory.MISC)
 				.sized(0.34F, 0.34F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_EGG_NAME).toString()));
-	public static final String PICKABLE_ENDER_PEARL_NAME = "pickable_ender_pearl";
+	public static final String PICKABLE_ENDER_PEARL_NAME = "ender_pearl_pickable";
 	public static final RegistryObject<EntityType<PickableEnderPearlEntity>> PICKABLE_ENDER_PEARL_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_ENDER_PEARL_NAME, () -> EntityType.Builder.<PickableEnderPearlEntity>
 				of(PickableEnderPearlEntity::new, MobCategory.MISC)
 				.sized(0.34F, 0.34F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_ENDER_PEARL_NAME).toString()));
-	public static final String PICKABLE_POTION_NAME = "pickable_potion";
+	public static final String PICKABLE_POTION_NAME = "potion_pickable";
 	public static final RegistryObject<EntityType<PickablePotionEntity>> PICKABLE_POTION_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_POTION_NAME, () -> EntityType.Builder.<PickablePotionEntity>
 				of(PickablePotionEntity::new, MobCategory.MISC)
 				.sized(0.25F, 0.25F).clientTrackingRange(6).updateInterval(10)
 				.build(new ResourceLocation(BaseballMod.MODID, PICKABLE_POTION_NAME).toString()));
-	public static final String PICKABLE_EXPERIENCE_BOTTLE_NAME = "pickable_experience_bottle";
+	public static final String PICKABLE_EXPERIENCE_BOTTLE_NAME = "experience_bottle_pickable";
 	public static final RegistryObject<EntityType<PickableExperienceBottleEntity>> PICKABLE_EXPERIENCE_BOTTLE_ENTITY =
 			ENTITY_TYPES.register(PICKABLE_EXPERIENCE_BOTTLE_NAME, () -> EntityType.Builder.<PickableExperienceBottleEntity>
 				of(PickableExperienceBottleEntity::new, MobCategory.MISC)
