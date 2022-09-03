@@ -1,6 +1,8 @@
 package blizzardfenix.webasemod.items.tools;
 
 import java.util.Map;
+import java.util.Random;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -8,8 +10,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import blizzardfenix.webasemod.BaseballMod;
+import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.entity.BouncyBallEntity;
-import blizzardfenix.webasemod.entity.BouncyFireBallEntity;
+import blizzardfenix.webasemod.entity.PickableEggEntity;
+import blizzardfenix.webasemod.entity.PickableEnderPearlEntity;
+import blizzardfenix.webasemod.entity.PickableExperienceBottleEntity;
+import blizzardfenix.webasemod.entity.PickablePotionEntity;
+import blizzardfenix.webasemod.entity.PickableSnowballEntity;
+import blizzardfenix.webasemod.init.ModItems;
+import blizzardfenix.webasemod.items.ItemHelperFunctions;
+import blizzardfenix.webasemod.server.WebaseMessage;
+import blizzardfenix.webasemod.server.WebasePacketHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
@@ -21,7 +32,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.AbstractArrowEntity.PickupStatus;
 import net.minecraft.entity.projectile.ProjectileItemEntity;
-import net.minecraft.entity.projectile.SmallFireballEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.IItemTier;
 import net.minecraft.item.Item;
@@ -29,13 +39,17 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemTier;
 import net.minecraft.item.SwordItem;
 import net.minecraft.item.crafting.IRecipeType;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.*;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 
 public class BaseballBat extends SwordItem {
-
 	Logger logger = LogManager.getLogger(BaseballMod.MODID + " BaseballBat");
+	Random random = new Random();
+	public boolean consecutiveUse = false;
 	
 	public BaseballBat(IItemTier tier, Properties builder) {
 		super(tier, 1, -2.8F, builder);
@@ -43,7 +57,6 @@ public class BaseballBat extends SwordItem {
 
 	@Override
 	public boolean onLeftClickEntity(ItemStack stack, PlayerEntity player, Entity entity) {
-		boolean successHit = false;
 		if (!player.level.isClientSide() && entity.tickCount > 5) {
 			if (entity instanceof ProjectileItemEntity) {
 				ProjectileItemEntity throwableentity = (ProjectileItemEntity) entity;
@@ -52,8 +65,8 @@ public class BaseballBat extends SwordItem {
 				BouncyBallEntity ballentity = null;
 				if (isBouncyBall) {
 					ballentity = (BouncyBallEntity) entity;
-					ballentity.comboDmg += 0.125F * this.getDamage() + ballentity.batHitDmg; // Wood has getDamage 3, Netherite as getDamage 7
-			        float shootspeed = ballentity.batHitSpeed * (1.0F + 0.3F * this.getDamage());
+					ballentity.comboDmg += 0.125F * this.getDamage() + ballentity.batHitDmg; // Wood has getDamage 1, Netherite as getDamage 5
+			        float shootspeed = ballentity.batHitSpeed * (0.46F * this.getDamage());
 			        Vector3d newvel = player.getLookAngle().scale(shootspeed);
 			        ballentity.hitbybat = true;
 			        
@@ -82,29 +95,89 @@ public class BaseballBat extends SwordItem {
 		            	ballentity.setSecondsOnFire(100);
 		            }
 		            
-			        ballentity.hitBall(newvel, ballentity.baseInaccuracy * 2.5F);
+			        ballentity.hitBall(newvel, ballentity.baseInaccuracy * 3F + 8F / (this.getDamage()) - 1.6F);
 				} else {
 					// Hit a throwable that is not an instance of BouncyBallEntity
-			        float shootspeed = 1.2F * (1.0F + 0.3F * this.getDamage());
+			        float shootspeed = 1.2F * (0.46F * this.getDamage());
 			        Vector3d newvel = player.getLookAngle().scale(shootspeed);
-					float inaccuracy = 1.0F;
+					float inaccuracy = 3F + 8F / (this.getDamage()) - 1.6F;
+					throwableentity.setDeltaMovement(newvel.normalize().add(this.random.nextGaussian() * 0.0075D * (double)inaccuracy, 
+							this.random.nextGaussian() * 0.0075D * (double)inaccuracy, 
+							this.random.nextGaussian() * 0.0075D * (double)inaccuracy).scale((double)newvel.length()));
 
-					throwableentity.setDeltaMovement(newvel.normalize().add(Item.random.nextDouble() * 0.0075D * (double)inaccuracy, 
-							Item.random.nextDouble() * 0.0075D * (double)inaccuracy, 
-							Item.random.nextDouble() * 0.0075D * (double)inaccuracy).scale((double)newvel.length()));
+					if (throwableentity instanceof PickableEggEntity) ((PickableEggEntity) throwableentity).returnToInventory = false;
+					else if (throwableentity instanceof PickableEnderPearlEntity) ((PickableEnderPearlEntity) throwableentity).returnToInventory = false;
+					else if (throwableentity instanceof PickableExperienceBottleEntity) ((PickableExperienceBottleEntity) throwableentity).returnToInventory = false;
+					else if (throwableentity instanceof PickablePotionEntity) ((PickablePotionEntity) throwableentity).returnToInventory = false;
+					else if (throwableentity instanceof PickableSnowballEntity) ((PickableSnowballEntity) throwableentity).returnToInventory = false;
 				}
-	            successHit = true;
+
+				if (this.consecutiveUse) this.consecutiveUse = false;
+	            //Reduce bat durability when hitting a ball
+	            stack.hurtAndBreak(1, player, (consumedEntity) -> {
+		        	consumedEntity.broadcastBreakEvent(EquipmentSlotType.MAINHAND); // Broadcasts whenever this bat breaks
+		        });
 			}
 		}
-		
-		if (successHit) {
-            //Reduce bat durability when hitting a ball
-            stack.hurtAndBreak(1, player, (consumedEntity) -> {
-	        	consumedEntity.broadcastBreakEvent(EquipmentSlotType.MAINHAND); // Broadcasts whenever this bat breaks
-	        });
-		}
-		
 		return false;
+	}
+
+	@Override
+	public ActionResult<ItemStack> use(World level, PlayerEntity player, Hand hand) {
+		ItemStack itemstack = player.getItemInHand(hand);
+		if (hand == Hand.MAIN_HAND) {
+			if (level.isClientSide) {
+				ItemStack throwableItem = BaseballBat.getProjectile(itemstack, player);
+				if (!throwableItem.isEmpty() && ItemHelperFunctions.checkThrowDelay()) {
+					// Tell the server to perform the throw as well. Necessary because the server doesn't know the player's velocity (also consistency with regular throwing)
+					WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(hand, player.getDeltaMovement(), true, false));
+					
+					ActionResultType result = ItemHelperFunctions.throwBallUp(level, player, hand, throwableItem);
+					if (result.consumesAction()) {
+						ItemHelperFunctions.ticksBeforeThrowing = ServerConfig.throwCooldown.get();
+						return ActionResult.consume(itemstack);
+					}
+					return ActionResult.fail(itemstack);
+				} else {
+					return ActionResult.fail(itemstack);
+				}
+			}
+		}
+
+		return ActionResult.pass(itemstack);
+	}
+
+	/**
+	 * Adapted from {@link Player.getProjectile}
+	 */
+	public static ItemStack getProjectile(ItemStack itemstackBat, PlayerEntity player) {
+		Predicate<ItemStack> predicate = (itemstack) -> {
+			Item item = itemstack.getItem();
+			boolean isVanillaThrowable = item.is(ItemHelperFunctions.VANILLATHROWABLETAG());
+			return (item.is(ItemHelperFunctions.THROWABLEITEMTAG()) && !isVanillaThrowable) || (isVanillaThrowable && ServerConfig.override_vanilla_throwables.get());
+			};
+		
+		ItemStack throwableItem = BaseballBat.getHeldProjectile(player, predicate);
+		if (!throwableItem.isEmpty()) {
+			return throwableItem;
+		} else {
+			for (int i = 0; i < player.inventory.getContainerSize(); ++i) {
+				throwableItem = player.inventory.getItem(i);
+				if (predicate.test(throwableItem)) {
+					return throwableItem;
+				}
+			}
+
+			return player.abilities.instabuild ? new ItemStack(ModItems.BASIC_BASEBALL.get()) : ItemStack.EMPTY;
+		}
+	}
+
+	public static ItemStack getHeldProjectile(LivingEntity player, Predicate<ItemStack> predicate) {
+		if (predicate.test(player.getItemInHand(Hand.OFF_HAND))) {
+			return player.getItemInHand(Hand.OFF_HAND);
+		} else {
+			return predicate.test(player.getItemInHand(Hand.MAIN_HAND)) ? player.getItemInHand(Hand.MAIN_HAND) : ItemStack.EMPTY;
+		}
 	}
 
 	@Override

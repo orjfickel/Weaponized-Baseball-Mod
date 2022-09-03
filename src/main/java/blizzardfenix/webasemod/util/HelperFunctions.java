@@ -14,7 +14,7 @@ import blizzardfenix.webasemod.entity.PickablePotionEntity;
 import blizzardfenix.webasemod.entity.PickableSnowballEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.init.ModKeyBindings;
-import blizzardfenix.webasemod.items.BaseballItem;
+import blizzardfenix.webasemod.items.BallItem;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
@@ -139,16 +139,16 @@ public class HelperFunctions {
 					}
 				} else {
 					// Try to just use the item first. If this does not consume the action, continue throwing
-					ActionResult<ItemStack> interactionresultholder = ActionResult.pass(itemstack);
-					if (!(item instanceof BaseballItem)) {// Code adapted from the vanilla minecraft way of calling itemstack.use on the client & server
-						interactionresultholder = itemstack.use(level, player, hand);
-						ItemStack newItemStack = interactionresultholder.getObject();
+					ActionResult<ItemStack> useResult = ActionResult.pass(itemstack);
+					if (!(item instanceof BallItem)) {// Code adapted from the vanilla minecraft way of calling itemstack.use on the client & server
+						useResult = itemstack.use(level, player, hand);
+						ItemStack newItemStack = useResult.getObject();
 						if (!level.isClientSide()) {
 							int i = itemstack.getCount();
 							int j = itemstack.getDamageValue();
 							
 							if (!(newItemStack == itemstack && newItemStack.getCount() == i && newItemStack.getUseDuration() <= 0 && newItemStack.getDamageValue() == j) && 
-									!(interactionresultholder.getResult() == ActionResultType.FAIL && newItemStack.getUseDuration() > 0 && !player.isUsingItem())) {
+									!(useResult.getResult() == ActionResultType.FAIL && newItemStack.getUseDuration() > 0 && !player.isUsingItem())) {
 								if (itemstack != newItemStack) {
 									player.setItemInHand(hand, newItemStack);
 								}
@@ -178,8 +178,8 @@ public class HelperFunctions {
 					}
 					
 					// If we actually used the item, or the throw key is not bound to the use key while we are trying to use the item, return
-					if (interactionresultholder.getResult().consumesAction() || (tryUse && ModKeyBindings.throwKey.getKey() != Minecraft.getInstance().options.keyUse.getKey())) {
-						result = interactionresultholder.getResult();
+					if (useResult.getResult().consumesAction() || (tryUse && ModKeyBindings.throwKey.getKey() != Minecraft.getInstance().options.keyUse.getKey())) {
+						result = useResult.getResult();
 					} else {
 						// Actually throw it
 						BouncyBallEntity throwableentity;

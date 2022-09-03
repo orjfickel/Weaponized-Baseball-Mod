@@ -4,10 +4,14 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import blizzardfenix.webasemod.util.HelperFunctions;
-import blizzardfenix.webasemod.util.Settings;
+import blizzardfenix.webasemod.items.ItemHelperFunctions;
+import blizzardfenix.webasemod.items.tools.BaseballBat;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.fml.network.NetworkEvent;
@@ -46,7 +50,27 @@ public class WebaseMessage {
 	public static void handle(WebaseMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
 		contextSupplier.get().enqueueWork(() -> {
 			ServerPlayerEntity player = contextSupplier.get().getSender();
-            HelperFunctions.tryThrow(player.getCommandSenderWorld(), player, message.hand, message.shooterVelocity, message.throwUp, message.tryUse);
+			player.setDeltaMovement(message.shooterVelocity); // Set the player velocity on the server, so that it will affect the throwable's shooting velocity
+			if (message.throwUp) {
+				ItemStack throwableItem = BaseballBat.getProjectile(player.getItemInHand(message.hand), player);
+				ActionResultType result =  ItemHelperFunctions.throwBallUp(player.getCommandSenderWorld(), player, message.hand, throwableItem);
+				if (result.consumesAction()) {
+					ItemStack itemStack = player.getItemInHand(Hand.MAIN_HAND);
+					Item item = itemStack.getItem();
+					if (item instanceof BaseballBat) {
+						BaseballBat batItem = (BaseballBat) item;
+						if (batItem.consecutiveUse ) {
+				            //Reduce bat durability when hitting a ball
+							itemStack.hurtAndBreak(1, player, (consumedEntity) -> {
+					        	consumedEntity.broadcastBreakEvent(EquipmentSlotType.MAINHAND); // Broadcasts whenever this bat breaks
+					        });
+						} else {
+							batItem.consecutiveUse = true;
+						}
+					}
+				}
+			} else
+				ItemHelperFunctions.tryThrow(player.getCommandSenderWorld(), player, message.hand, message.tryUse);
 		});
 		contextSupplier.get().setPacketHandled(true);
 	}

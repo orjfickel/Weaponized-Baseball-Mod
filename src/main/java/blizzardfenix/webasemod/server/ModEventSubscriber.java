@@ -8,10 +8,9 @@ import blizzardfenix.webasemod.commands.SetThrowableVarCommand;
 import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.entity.BouncyBallEntity;
 import blizzardfenix.webasemod.init.ModEntityTypes;
-import blizzardfenix.webasemod.items.BaseballItem;
+import blizzardfenix.webasemod.items.BallItem;
+import blizzardfenix.webasemod.items.ItemHelperFunctions;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
-import blizzardfenix.webasemod.util.HelperFunctions;
-import blizzardfenix.webasemod.util.Settings;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.dispenser.IPosition;
 import net.minecraft.dispenser.ProjectileDispenseBehavior;
@@ -23,13 +22,8 @@ import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.ITagCollection;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Util;
 import net.minecraft.world.World;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -38,7 +32,6 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.server.command.ConfigCommand;
 
 @EventBusSubscriber(modid = BaseballMod.MODID)
@@ -52,23 +45,23 @@ public class ModEventSubscriber {
         ConfigCommand.register(event.getDispatcher());
 		LOGGER.info("Registered commands");
     }
-
+//itemtags.getTag(new ResourceLocation("forge","nuggets")).contains(itemstack.getItem())
     @SubscribeEvent
     public static void onTagsUpdated(TagsUpdatedEvent event) {
-		ITagCollection<Item> itemtags = ItemTags.getAllTags();
-		ITag<Item> throwableItems = itemtags.getTag(new ResourceLocation("webasemod", "throwable_items"));
-    	
     	// Set the ability for dispensers to shoot balls
-		throwableItems.getValues().forEach((item) -> {
+		ItemHelperFunctions.THROWABLEITEMTAG().getValues().forEach((item) -> {
 			// Fireballs and eggs already have different dispenser behaviour. Also ignore any throwable items from other mods, as they might have different use functionality defined already.
-			String namespace = ForgeRegistries.ITEMS.getKey(item).getNamespace();
-    		if (item == Items.FIRE_CHARGE || item == Items.EGG || (namespace != "minecraft" && !BaseballMod.MODID.equals(namespace))) return;
+    		String namespace = item.getRegistryName().getNamespace();
+    		if (item == Items.FIRE_CHARGE || item == Items.EGG || (namespace != "minecraft" && namespace != BaseballMod.MODID)) 
+    			return;
     		DispenserBlock.registerBehavior(item, new ProjectileDispenseBehavior() {
     			protected ProjectileEntity getProjectile(World world, IPosition pos, ItemStack itemstack) {
     				return Util.make(
-    						itemtags.getTag(new ResourceLocation("forge","nuggets")).contains(itemstack.getItem())
+    						itemstack.getItem().is(ItemHelperFunctions.NUGGETTAG())
 							? new BouncyBallEntity(ModEntityTypes.SMALL_THROWABLE_ITEM_ENTITY.get(), world, pos.x(), pos.y(), pos.z())
-							: new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), world, pos.x(), pos.y(), pos.z()), 
+							: (ItemHelperFunctions.isMediumThrowable(item)
+								? new BouncyBallEntity(ModEntityTypes.MEDIUM_THROWABLE_ITEM_ENTITY.get(), world, pos.x(), pos.y(), pos.z())
+								: new BouncyBallEntity(ModEntityTypes.THROWABLE_ITEM_ENTITY.get(), world, pos.x(), pos.y(), pos.z())), 
 						(ballEntity) -> {
 							ballEntity.setItem(itemstack);
 							ballEntity.comboDmg += 0.125F * 4 + ballEntity.batHitDmg; // Equivalent to hitting with stone bat
@@ -100,27 +93,22 @@ public class ModEventSubscriber {
 		World level = event.getWorld();
 		ItemStack itemStack = event.getItemStack();
 		Item item = itemStack.getItem();
-		ITagCollection<Item> tags = ItemTags.getAllTags();
-		
-		// If the player right clicked and if either the held item is a newly made throwable item and the throw key is set to right click, or if the held item is a vanilla throwable, then try to throw the held item.
-		// BaseballItems handle throwing themselves through Item.use()
-		boolean isVanillaThrowable = tags.getTag(new ResourceLocation("webasemod", "vanilla_throwables")).contains(item);
-		boolean isNewThrowable = (tags.getTag(new ResourceLocation("webasemod", "throwable_items")).contains(item) && !(item instanceof BaseballItem) && !isVanillaThrowable);
+				
+		// If the player right clicked and if either the held item is a newly made throwable item, 
+		// or if the held item is a vanilla throwable and those should be overridden, then try to throw the held item.
+		boolean isVanillaThrowable = item.is(ItemHelperFunctions.VANILLATHROWABLETAG());
+		// (Modded) eggs can be included in throwable_items, but vanilla eggs are not new throwables
+		boolean isNewThrowable = (item.is(ItemHelperFunctions.THROWABLEITEMTAG()) && !isVanillaThrowable);
 		if (isNewThrowable || (isVanillaThrowable && ServerConfig.override_vanilla_throwables.get())) {
 			if (level.isClientSide()) {
-				if (true) {// Make sure the throwkey is pressed when it is a new throwable
-					PlayerEntity player = event.getPlayer();
-                    Hand hand = event.getHand();
+				PlayerEntity player = event.getPlayer();
 
-					ActionResultType result = HelperFunctions.tryThrow(level, player, event.getHand(), player.getDeltaMovement(), Settings.throwUp, true);
-					if (result.consumesAction()) {
-						// If the throw was successful, tell the server to perform the throw as well. Necessary because the server doesn't know if the throw key is the same as the use key.
-						WebasePacketHandler.INSTANCE.sendToServer(new WebaseMessage(event.getHand(), player.getDeltaMovement(), Settings.throwUp, true));
-						
-					}
-					event.setCanceled(true);
-					event.setCancellationResult(result);
+				ActionResultType result = ItemHelperFunctions.tryThrow(level, player, event.getHand(), !(item instanceof BallItem));
+				if (result.consumesAction()) {
+					
 				}
+				event.setCanceled(true);
+				event.setCancellationResult(result);
 			} else {
 				event.setCanceled(true);
 				event.setCancellationResult(ActionResult.sidedSuccess(itemStack, level.isClientSide()).getResult());

@@ -42,11 +42,11 @@ public class ThrowableProperties {
 		private float baseDmg = 0.4F;// One fifth of a heart when normally thrown
 		private float batHitDmg = 2.0F;
 		private float bounciness = 0.8F;
-		private float friction = 0.9F; // 1.0F is minimum friction, just as it is implemented for blocks in vanilla minecraft.
+		private float friction = 0.8F; // 1.0F is minimum friction, just as it is implemented for blocks in vanilla minecraft.
 		private float baseInaccuracy = 0.8F;
 		private float throwSpeed = 1.0F;
 		private float batHitSpeed = 1.2F;
-		private float minDmgSpeed = 0.35F;
+		private float minDmgSpeed = 0.15F;
 		private float destroyChance = 0.05F;
 		private float airResistance = 0.99F;
 		private boolean useOnEntityHit = false;

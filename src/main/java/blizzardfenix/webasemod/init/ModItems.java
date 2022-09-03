@@ -1,7 +1,7 @@
 package blizzardfenix.webasemod.init;
 
 import blizzardfenix.webasemod.BaseballMod;
-import blizzardfenix.webasemod.items.BaseballItem;
+import blizzardfenix.webasemod.items.BallItem;
 import blizzardfenix.webasemod.items.CatcherGlove;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import net.minecraft.item.Item;
@@ -13,14 +13,15 @@ import net.minecraftforge.registries.ForgeRegistries;
 public class ModItems {
 	public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, BaseballMod.MODID);
 
-	public static final RegistryObject<BaseballItem> BASIC_BASEBALL = ITEMS.register("basic_baseball", () -> new BaseballItem(new BaseballItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP), ModEntityTypes.BASEBALL_PROPERTIES));
+	public static final RegistryObject<BallItem> BASIC_BASEBALL = ITEMS.register("basic_baseball", () -> new BallItem(new BallItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 	public static final RegistryObject<Item> CORK = ITEMS.register("cork", () -> new Item(new Item.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 	public static final RegistryObject<Item> BASEBALL_CORE = ITEMS.register("baseball_core", () -> new Item(new Item.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 	public static final RegistryObject<Item> BASEBALL_HALF = ITEMS.register("baseball_half", () -> new Item(new Item.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 
-	public static final RegistryObject<BaseballItem> DIRTBALL = ITEMS.register("dirtball", () -> new BaseballItem(new BaseballItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP),ModEntityTypes.DIRTBALL_PROPERTIES));
-	public static final RegistryObject<BaseballItem> STONEBALL = ITEMS.register("stoneball", () -> new BaseballItem(new BaseballItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP),ModEntityTypes.STONEBALL_PROPERTIES));
-	public static final RegistryObject<BaseballItem> CORKBALL = ITEMS.register("corkball", () -> new BaseballItem(new BaseballItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP),ModEntityTypes.CORKBALL_PROPERTIES));
+	public static final RegistryObject<BallItem> DIRTBALL = ITEMS.register("dirtball", () -> new BallItem(new BallItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BallItem> STONEBALL = ITEMS.register("stoneball", () -> new BallItem(new BallItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BallItem> GOLFBALL = ITEMS.register("golfball", () -> new BallItem(new BallItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
+	public static final RegistryObject<BallItem> SUPER_SLIMEBALL = ITEMS.register("super_slimeball", () -> new BallItem(new BallItem.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 	
 	public static final RegistryObject<CatcherGlove> CATCHER_GLOVE = ITEMS.register("catcher_glove", () -> new CatcherGlove(new CatcherGlove.Properties().tab(ModItemGroups.MOD_ITEM_GROUP)));
 
