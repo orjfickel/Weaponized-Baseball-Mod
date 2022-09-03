@@ -5,12 +5,17 @@
     "minecraft:slime_ball",
     "minecraft:fire_charge",
     "webasemod:basic_baseball",
+    "webasemod:cork",
+    "webasemod:baseball_core",
     "webasemod:dirtball",
     "webasemod:stoneball",
-    "webasemod:corkball",
+    "webasemod:golfball",
+    "webasemod:super_slimeball",
     "#minecraft:coals",
     "#forge:gems",
     "#forge:nuggets",
-    "#forge:ingots"
+    "#forge:ingots",
+    "#forge:slimeballs",
+    "#forge:eggs"
   ]
 }

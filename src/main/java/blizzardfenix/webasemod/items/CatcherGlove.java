@@ -15,8 +15,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.Vec3;
 
-import net.minecraft.world.item.Item.Properties;
-
 public class CatcherGlove extends Item {
 	float range = 25;
 	float dotAngle = 0.6F;

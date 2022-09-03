@@ -8,8 +8,6 @@ import net.minecraft.world.entity.projectile.SmallFireball;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-import net.minecraft.world.entity.Entity.RemovalReason;
-
 public class BouncyFireBallEntity extends BouncyBallEntity {
 
 	public BouncyFireBallEntity(EntityType<? extends BouncyFireBallEntity> type, Level worldIn) {

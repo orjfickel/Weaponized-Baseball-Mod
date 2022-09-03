@@ -3,12 +3,11 @@ package blizzardfenix.webasemod;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import blizzardfenix.webasemod.client.ClientForgeEventSubscriber;
 import blizzardfenix.webasemod.config.ClientConfig;
 import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.init.ModItems;
-import blizzardfenix.webasemod.server.ModEventSubscriber;
+import blizzardfenix.webasemod.items.ItemHelperFunctions;
 import blizzardfenix.webasemod.server.WebasePacketHandler;
 import net.minecraft.client.Timer;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -46,6 +45,6 @@ public class BaseballMod
 
     private void doClientStuff(final FMLClientSetupEvent event) 
     {
-    	ClientForgeEventSubscriber.timer = new Timer(20.0F, 0L);
+    	ItemHelperFunctions.timer = new Timer(20.0F, 0L);
     }
 }
