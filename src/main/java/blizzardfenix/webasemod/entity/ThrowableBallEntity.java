@@ -16,6 +16,7 @@ import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.init.ModEntityTypes;
 import blizzardfenix.webasemod.init.ModItems;
 import blizzardfenix.webasemod.init.ThrowableProperties;
+import blizzardfenix.webasemod.items.ItemHelperFunctions;
 import blizzardfenix.webasemod.items.tools.BaseballBat;
 import blizzardfenix.webasemod.util.Settings;
 import net.minecraft.core.BlockPos;
@@ -63,7 +64,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractGlassBlock;
-import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BushBlock;
@@ -81,8 +81,9 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeHooks;
@@ -105,6 +106,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	public boolean hitbybat = false;
 	public float comboDmg = 0;
 	protected boolean leftOwner;
+	public boolean thrownUp = false;
 	
 	// Not very memory efficient but to prevent having to copy paste all the minecraft code that only executes for instances of AbstractArrow
 	private UUID arrowId;
@@ -121,7 +123,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	public float throwSpeed;
 	public float batHitSpeed;
 	public float friction;
-	public float minDmgSpeed;
+	public float minDmgSpeedSqr;
 	/** Probability that this ball gets destroyed upon hurting an entity */
 	public float destroyChance;
 	public float airResistance;
@@ -136,7 +138,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	final float idleSpeed = 0.05F;
 	final float idleSpeedSqr = idleSpeed*idleSpeed;
 	final float epsilonSpeedSqr = 1E-5F;
-	final float fastmoveSpeedSqr = 0.2F*0.2F;
+	final float fastmoveSpeedSqr = 0.3F*0.3F;
 	public boolean againstXWall = false;
 	public boolean againstZWall = false;
 	protected Vec3 totPosCorrection = Vec3.ZERO;
@@ -179,28 +181,33 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	public void initProperties(Item item) {
 		ThrowableProperties properties;
 		
-		ITagManager<Item> tags = ForgeRegistries.ITEMS.tags();
 		if (item == ModItems.BASIC_BASEBALL.get())
 			properties = ModEntityTypes.BASEBALL_PROPERTIES;
 		else if (item == ModItems.DIRTBALL.get())
 			properties = ModEntityTypes.DIRTBALL_PROPERTIES;
 		else if (item == ModItems.STONEBALL.get())
 			properties = ModEntityTypes.STONEBALL_PROPERTIES;
-		else if (item == ModItems.CORKBALL.get())
-			properties = ModEntityTypes.CORKBALL_PROPERTIES;
+		else if (item == ModItems.GOLFBALL.get())
+			properties = ModEntityTypes.GOLFBALL_PROPERTIES;
+		else if (item == ModItems.CORK.get())
+			properties = ModEntityTypes.CORK_PROPERTIES;
+		else if (item == ModItems.SUPER_SLIMEBALL.get())
+			properties = ModEntityTypes.SUPER_SLIMEBALL_PROPERTIES;
+		else if (item == ModItems.BASEBALL_CORE.get())
+			properties = ModEntityTypes.CORE_PROPERTIES;
 		else if (item == Items.DIAMOND)
 			properties = ModEntityTypes.DIAMOND_PROPERTIES;
 		else if (item == Items.EMERALD)
 			properties = ModEntityTypes.EMERALD_PROPERTIES;
-		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","ingots"))).contains(item) && item != Items.BRICK)
+		else if (ItemHelperFunctions.ITEMTAGS.getTag(ItemHelperFunctions.ITEMTAGS.createTagKey(new ResourceLocation("forge","ingots"))).contains(item) && item != Items.BRICK)
 			properties = ModEntityTypes.INGOT_PROPERTIES;
-		else if (tags.getTag(tags.createTagKey(new ResourceLocation("minecraft","coals"))).contains(item))
+		else if (ItemHelperFunctions.ITEMTAGS.getTag(ItemHelperFunctions.ITEMTAGS.createTagKey(new ResourceLocation("minecraft","coals"))).contains(item))
 			properties = ModEntityTypes.COAL_PROPERTIES;
-		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","nuggets"))).contains(item))
+		else if (ItemHelperFunctions.ITEMTAGS.getTag(ItemHelperFunctions.NUGGETTAG).contains(item))
 			properties = ModEntityTypes.NUGGET_PROPERTIES;
-		else if (item == Items.TURTLE_EGG || tags.getTag(tags.createTagKey(new ResourceLocation("forge","eggs"))).contains(item))
+		else if (item == Items.TURTLE_EGG || ItemHelperFunctions.ITEMTAGS.getTag(ItemHelperFunctions.ITEMTAGS.createTagKey(new ResourceLocation("forge","eggs"))).contains(item))
 			properties = ModEntityTypes.EGG_PROPERTIES;
-		else if (tags.getTag(tags.createTagKey(new ResourceLocation("forge","slimeballs"))).contains(item))
+		else if (ItemHelperFunctions.ITEMTAGS.getTag(ItemHelperFunctions.ITEMTAGS.createTagKey(new ResourceLocation("forge","slimeballs"))).contains(item))
 			properties = ModEntityTypes.SLIMEBALL_PROPERTIES;
 		else if (item == Items.FIRE_CHARGE)
 			properties = ModEntityTypes.FIREBALL_PROPERTIES;
@@ -211,17 +218,19 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		this.mass = properties.mass;
 		this.baseDmg = properties.baseDmg;
 		this.batHitDmg = properties.batHitDmg;
-		this.bounciness = Settings.overrideBounciness ? Settings.bounciness : properties.bounciness;
-		this.friction = Settings.overrideFriction ? Settings.friction : properties.friction;
 		this.baseInaccuracy = properties.baseInaccuracy;
 		this.throwSpeed = properties.throwSpeed;
 		this.batHitSpeed = properties.batHitSpeed;
-		this.minDmgSpeed = properties.minDmgSpeed;
+		this.minDmgSpeedSqr = properties.minDmgSpeed * properties.minDmgSpeed;
 		this.destroyChance = properties.destroyChance;
 		this.airResistance = properties.airResistance;
 		this.useOnEntityHit = properties.useOnEntityHit;
 		this.useOnBlockHit = properties.useOnBlockHit;
 		this.useOnIdle = properties.useOnIdle;
+
+		boolean nerfSuperball = (item == ModItems.SUPER_SLIMEBALL.get() && ServerConfig.nerf_super_slimeball.get());
+		this.bounciness = Settings.overrideBounciness ? Settings.bounciness : (nerfSuperball ? 0.95F : properties.bounciness);
+		this.friction = Settings.overrideFriction ? Settings.friction : (nerfSuperball ? 0.95F : properties.friction);
 	}
 	
 	@Override
@@ -230,6 +239,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			this.initProperties(this.getItem().getItem());
 		
 		Vec3 motionvec = this.getDeltaMovement();
+
 		if (!this.level.isClientSide) {
 			if ((this.isOnGround() || this.isInWater()) && motionvec.lengthSqr() < this.idleSpeedSqr) {
                 // If idle for long enough, destroy
@@ -237,12 +247,18 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 					if (ServerConfig.drop_balls.get())
 						this.dropSelf();
 					else
-						this.remove(RemovalReason.DISCARDED);
+						this.destroy(RemovalReason.DISCARDED);
 				}
                 // Reset the combo
                 this.comboDmg = 0;
 			} else {
 				this.droptimer = this.tickCount;
+			}
+			
+			if (this.thrownUp && !this.hitbybat && this.tickCount > ItemHelperFunctions.hitTime) {
+				Entity owner = this.getOwner();
+				if (owner instanceof Player)
+					this.pickup((Player) owner);
 			}
 		}
 
@@ -319,11 +335,11 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		velocity = velocity.scale((double) drag);
 		this.setDeltaMovement(velocity);
 
-		if (velocity.lengthSqr() > this.fastmoveSpeedSqr) {
+		double speedSqr = velocity.lengthSqr();
+		if (speedSqr > this.fastmoveSpeedSqr) {
 			this.fastMove();
 		} else {
 			this.slowMove(); // Also handles changing position
-			this.testInsideBlock();
 		}
         this.tryCheckInsideBlocks();
 
@@ -375,16 +391,19 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			isThrowableBall = entity instanceof ThrowableBallEntity;
 			entityhit = !isThrowableBall || this.level.isClientSide || !this.isRegistered((ThrowableBallEntity) entity);
 		}
-		
+
 		if (entityhit) {
+			if(!this.level.isClientSide) markHurt();
 			Vec3 expmovement = mot.scale(0.4F); // A very very rough estimation of where along the motion trajectory the ball actually hits the entity
-			this.setPos(this.position().add(expmovement));
+			Vec3 allowedVec = collideBoundingBox(this, expmovement, this.getBoundingBox(), this.level, List.of());
+			this.setPos(this.position().add(allowedVec));
 			this.setDeltaMovement(mot);
 			if (!this.level.isClientSide) {
 				if (isThrowableBall) this.registerHit((ThrowableBallEntity) entity);
 				onEntityImpact(entityres);
 			}
 		} else if (blockres.getType() != BlockHitResult.Type.MISS) {
+			if(!this.level.isClientSide) markHurt();
             // Since the ray trace will put the center of the ball as newpos inside of a block, we need to move it back a bit
             Vec3 offsetHitPos = null;
             switch(blockres.getDirection().getAxis()) {
@@ -398,12 +417,12 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
                 offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.z))));
                 break;
             };
-            this.setPos(offsetHitPos.x, offsetHitPos.y, offsetHitPos.z);
-			this.onBlockImpact(blockres, mot);
+            // For a fast ray trace hit we do not need to use BallPhysicsHelper.getVelocityScaling to slide the ball across the block any further than the hit position.
+            this.setPos(offsetHitPos);
+			this.blockHitMove(blockres, offsetHitPos);
 		} else {
 			// If both ray traces missed, do a final collision check with the bounding box
-			if(!this.level.isClientSide) markHurt();
-			this.blockDetect(mot);
+			this.tryMove(mot);
 		}
 	}
 		
@@ -412,6 +431,15 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	protected void slowMove() {		
 		Vec3 velocity = this.getDeltaMovement();
 		boolean nomove = false;
+		Vec3 centerposition = this.getCenterPositionVec();
+		BlockPos blockpos = new BlockPos(centerposition);
+		boolean insideblock = this.level.getBlockState(blockpos).isCollisionShapeFullBlock(this.level, blockpos);
+		
+		if (insideblock) {
+			this.moveTowardsClosestSpace(centerposition.x,centerposition.y,centerposition.z);	
+			this.setPos(this.position().add(this.getDeltaMovement()));
+			return;
+		}
 		
 		// If we are on the ground and not moving, do a simple raytrace to test if there is a block below us, in which case we can safely (and efficiently) remain in place.
 		if (this.isOnGround() && this.isIdle()) {
@@ -426,10 +454,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				nomove = true;
 				this.setDeltaMovement(Vec3.ZERO);
 			}
-		} 
+		}
 		
-		if (!nomove && velocity.lengthSqr() > this.epsilonSpeedSqr) {
-			this.blockDetect(velocity);
+		if (!nomove) {
+			this.tryMove(velocity);
 		}
 
 		// Do not handle further collision on the client or on lite mode
@@ -448,22 +476,19 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		profiler.pop();
 	}
 	
-	/** Detect if we hit a block based on whether our (expected) movement was blocked */
-	void blockDetect(Vec3 expmovement) {
-		Vec3 velocity = this.getDeltaMovement();
+	/** Try to move and detect if we hit a block based on whether our (expected) movement was blocked */
+	void tryMove(Vec3 expmovement) {
 		Vec3 allowedmotionvec = collideBoundingBox(this, expmovement, this.getBoundingBox(), this.level, List.of());
 		
 		boolean xblock = (Math.round(expmovement.x*100) != Math.round(allowedmotionvec.x*100)) && expmovement.x != 0;
-		boolean yblock = ((Math.round(expmovement.y*100) < Math.round(allowedmotionvec.y*100)) && expmovement.y < 0) || 
-				((Math.round(expmovement.y*100) > Math.round(allowedmotionvec.y*100)) && expmovement.y > 0);
+		boolean yblock = ((Math.round(expmovement.y*100) != Math.round(allowedmotionvec.y*100)) && expmovement.y != 0);
 		boolean zblock = (Math.round(expmovement.z*100) != Math.round(allowedmotionvec.z*100)) && expmovement.z != 0;
 		
 		Vec3 hitpos = null;
-		BlockHitResult blockres = null;
-		this.setPos(this.position().add(allowedmotionvec));
 		
-		if (!xblock && !yblock && !zblock) {			
+		if ((!xblock && !yblock && !zblock) ) {
 			// If there is no collision, simply move as far as the expected movement.
+			this.setPos(this.position().add(allowedmotionvec));
 			if (expmovement.x != 0)
 				this.againstXWall = false;
 			if (expmovement.z != 0)
@@ -472,6 +497,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				this.onGround = false;
 			return;
 		}
+		if(!this.level.isClientSide) markHurt();
 		if (expmovement.x != 0)
 			this.againstXWall = xblock;
 		if (expmovement.z != 0)
@@ -479,30 +505,79 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		if (expmovement.y != 0)
 			this.onGround = yblock && expmovement.y <= 0;
 
-		// The position we hit is our original position plus the expected movement scaled so that the added x movement is exactly the allowed x movement.
+		// The position we hit is our original position plus the expected movement scaled so that the movement in other axes is also limited by the blocked axis
 		// Ensure allowedmotionvec moves us directly to the hitvec
-		allowedmotionvec = expmovement.scale(xblock ? allowedmotionvec.x/expmovement.x :
-											 yblock ? allowedmotionvec.y/expmovement.y :
-													  allowedmotionvec.z/expmovement.z);
+		double xdiv = expmovement.x != 0 ? allowedmotionvec.x/expmovement.x : 1;
+		double ydiv = expmovement.y != 0 ? allowedmotionvec.y/expmovement.y : 1;
+		double zdiv = expmovement.z != 0 ? allowedmotionvec.z/expmovement.z : 1;
+		Vec3 scaledallowedmotionvec = expmovement.scale(Math.min(xdiv, Math.min(ydiv, zdiv)));
+		
 		// If the allowed movement is small enough, just set it to zero.
-		if (allowedmotionvec.lengthSqr() < this.epsilonSpeedSqr) {
-			allowedmotionvec = Vec3.ZERO;
+		if (scaledallowedmotionvec.lengthSqr() < this.epsilonSpeedSqr) {
+			scaledallowedmotionvec = Vec3.ZERO;
+			// If our only velocity is down in the y axis and less than gravity, we don't need to do a block impact either
+			if (expmovement.x == 0 && expmovement.z == 0 && yblock && expmovement.y >= -this.getGravity() && expmovement.y < 0) {
+				this.setDeltaMovement(Vec3.ZERO);
+				return;
+			}
 		}
-		hitpos = this.position().add(allowedmotionvec);
 
-		if (xblock) {
-			blockres = BallPhysicsHelper.computeTargetBlock(Axis.X, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
-		}
+		hitpos = this.getCenterPositionVec().add(scaledallowedmotionvec);
+		Vec3 finalMoveVec = Vec3.ZERO;
+		double blockfriction = 1;
+		boolean xhit = false,yhit = false,zhit = false;
 		if (yblock) {
-			blockres = BallPhysicsHelper.computeTargetBlock(Axis.Y, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
+			BlockHitResult blockres = BallPhysicsHelper.computeTargetBlock(Axis.Y, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
+			
+			yhit = blockres.getType() != Type.MISS;
+			if (yhit) {
+				Vec2 velocityScaling = this.blockHitMove(blockres, hitpos);
+				blockfriction = Math.min(velocityScaling.y, blockfriction);
+			}
+		}
+		if (xblock) {
+			BlockHitResult blockres = BallPhysicsHelper.computeTargetBlock(Axis.X, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
+			
+			xhit = blockres.getType() != Type.MISS;
+			if (xhit) {
+				Vec2 velocityScaling = this.blockHitMove(blockres, hitpos);
+				blockfriction = Math.min(velocityScaling.y, blockfriction);
+			}
 		}
 		if (zblock) {
-			blockres = BallPhysicsHelper.computeTargetBlock(Axis.Z, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
-		}		
-		
-		if (xblock || yblock || zblock) {
-			onBlockImpact(blockres, velocity);
+			BlockHitResult blockres = BallPhysicsHelper.computeTargetBlock(Axis.Z, hitpos, expmovement, this.level, this.getDimensions(this.getPose()));
+			
+			zhit = blockres.getType() != Type.MISS;
+			if (zhit) {
+				Vec2 velocityScaling = this.blockHitMove(blockres, hitpos);
+				blockfriction = Math.min(velocityScaling.y, blockfriction);
+			}
 		}
+		
+		if (xhit || yhit || zhit) {
+			finalMoveVec = this.scaleHitVelocity(scaledallowedmotionvec, expmovement, blockfriction, xhit, yhit, zhit);
+			finalMoveVec = collideBoundingBox(this, finalMoveVec, this.getBoundingBox(), this.level, List.of());
+		} else {
+			finalMoveVec = expmovement;
+		}
+		
+		this.setPos(this.position().add(finalMoveVec));
+	}
+	
+	protected Vec2 blockHitMove(BlockHitResult blockres, Vec3 hitPos) {
+		Vec3 velocity = this.getDeltaMovement();
+		float speedSqr = (float) velocity.lengthSqr();
+		BlockState hitblockstate = this.level.getBlockState(blockres.getBlockPos());
+		BlockState currblockstate = this.level.getBlockState(blockres.getBlockPos().relative(blockres.getDirection()));
+		Vec2 velocityScaling = BallPhysicsHelper.getVelocityScaling(this, hitblockstate, currblockstate, speedSqr);
+
+		onBlockImpact(blockres, hitPos, velocity, hitblockstate, speedSqr, velocityScaling);
+		return velocityScaling;
+	}
+	
+	// Overrided by BouncyBallEntity
+	protected Vec3 scaleHitVelocity(Vec3 toTargetVec, Vec3 originalVelocity, double blockfriction, boolean xhit, boolean yhit, boolean zhit) {
+		return toTargetVec;
 	}
 	
 	/** Handles entity collision using an aabb at the current position. Handles both velocity and position correction
@@ -553,30 +628,22 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 						if (this.level.isClientSide)
 							return true;
 						
+						onEntityImpact(new EntityHitResult(entity));
 						// Make sure there is no overlap between the entities
 						this.posCorrectionEntity(entity);
 
-						onEntityImpact(new EntityHitResult(entity));
 					}
 				} else {
 					collisiondetected = true;
 					if (this.level.isClientSide)
 						return true;
+					onEntityImpact(new EntityHitResult(entity));
 					// Make sure there is no overlap between the entities
 					this.posCorrectionEntity(entity);
-					onEntityImpact(new EntityHitResult(entity));
 				}
 			}
 		}
 		return collisiondetected;
-	}
-		
-	protected void testInsideBlock() {
-		Vec3 centerposition = this.position();
-		BlockPos blockpos = new BlockPos(centerposition);
-		if (this.level.getBlockState(blockpos).isCollisionShapeFullBlock(this.level, blockpos)) {
-			this.moveTowardsClosestSpace(centerposition.x,centerposition.y,centerposition.z);
-		}
 	}
 
 	/**
@@ -613,7 +680,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		    }
 
 			double overlapdist = (this.getBbWidth()+entityIn.getBbWidth())/2 - dist;
-			if (overlapdist <= 0) {
+			if (overlapdist <= 0.001D) {
 
 				profiler.pop();
 				return;
@@ -699,7 +766,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			
 			// If we get pushed something that is crouching it will have no velocity.
 			// Because of this we need to do some position-based-dynamics to apply some impulse.
-			if (entityIn.isCrouching()) {
+			if (entityIn.isCrouching() && this.getDeltaMovement().lengthSqr() < 0.2F*0.2F) {
 				this.setDeltaMovement(this.getDeltaMovement().add(getFullPushed ? diff : posvec.subtract(oldposvec)));
 			}
 			
@@ -740,18 +807,19 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	/**
 	 * Handle a block collision.
 	 */
-	public boolean onBlockImpact(BlockHitResult result, Vec3 prevvel) {
+	public boolean onBlockImpact(BlockHitResult result, Vec3 centerPos, Vec3 prevvel, BlockState hitblockstate, float speed, Vec2 velocityScaling) {
 		if (net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, result))
 			return false;
+		if (this.thrownUp && !this.hitbybat) {
+			Entity owner = this.getOwner();
+			if (owner instanceof Player)
+				this.pickup((Player) owner);
+		}
 		
 		BlockPos blockPos = result.getBlockPos();
-		BlockState hitblockstate = this.level.getBlockState(blockPos);
 		Block blockhit = hitblockstate.getBlock();
 
-        this.gameEvent(GameEvent.PROJECTILE_LAND, this.getOwner());
-
 		// Play the impact sound
-		float speed = (float) prevvel.length();
 		float impactspeed = 0;
 		switch(result.getDirection().getAxis()) {
 		case X:
@@ -764,8 +832,12 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			impactspeed = Math.abs((float)prevvel.z);
 			break;
 		};
-		if (impactspeed > 0.3F)
-			this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
+		if (impactspeed > 0.1F) {
+	        this.gameEvent(GameEvent.PROJECTILE_LAND, this.getOwner());
+			if (impactspeed > 0.3F) {
+				this.playStepSound(blockPos, hitblockstate, Math.max(impactspeed * 1.0F + 0.1F, 0));
+			}
+		}
 		
 		if (!this.level.isClientSide) {
 			// If we hit a target block, trigger TargetBlock's arrow hit functionality with our mock arrow, otherwise call onProjectileHit regularly
@@ -793,7 +865,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				hitblockstate.onProjectileHit(this.level, hitblockstate, result, this);
 	
 				// Check if we are inside of a button block, in which case use the mock arrow to press the button.
-				BlockState thisblockstate = this.level.getBlockState(this.blockPosition());
+				BlockState thisblockstate = this.level.getBlockState(new BlockPos(centerPos));
 				Block thisblock = thisblockstate.getBlock();
 				
 				if (thisblock instanceof ButtonBlock) {
@@ -830,12 +902,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	public boolean onEntityImpact(EntityHitResult result) {
 		if (net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, result))
 			return false;
-		
-        this.gameEvent(GameEvent.PROJECTILE_LAND, this.getOwner());
-		
+				
 		Entity target = result.getEntity();
 		Vec3 velocity = this.getDeltaMovement();
-		float speed = (float) velocity.length();
+		float relspeed = (float) velocity.subtract(target.getDeltaMovement()).lengthSqr();
 		
 		Entity thrower = this.getOwner(); // Note: this is null on the client
 		DamageSource source;
@@ -845,12 +915,14 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		
 		boolean successAttack = false;
 		boolean hitThrower = target.is(thrower);
+		
 
 		// If we're moving fast enough, try to hurt the target entity
-		if (speed > minDmgSpeed) {
+		if (relspeed > minDmgSpeedSqr && velocity.lengthSqr() > minDmgSpeedSqr) {
+	        this.gameEvent(GameEvent.PROJECTILE_LAND, this.getOwner());
 			float attackdmg = this.baseDmg;
             if (!hitThrower) attackdmg += this.comboDmg; // Add combo damage but prevent hurting yourself too badly
-			attackdmg = (float) Mth.clamp(speed * attackdmg, 0.0D, Integer.MAX_VALUE);
+			attackdmg = (float) Mth.clamp(relspeed * attackdmg, 0.0D, Integer.MAX_VALUE);
 			// If the attackdmg is lower than the minimum damage then use probability to still deal the correct damage on average
 			int actualdmg = (attackdmg < 1F) ? (this.random.nextFloat() > attackdmg ? 0 : 1) : Mth.ceil(attackdmg);
 			
@@ -880,7 +952,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				source = (new IndirectEntityDamageSource("ball", sourceEntity, this)).setProjectile();
 			}
 			Vec3 targetvelocity = target.getDeltaMovement();
-			successAttack = target.hurt(source, actualdmg);
+
+			successAttack = target.hurt(source, relspeed > 3F ? 12F : Math.max(0.1F, actualdmg)); // do 15 dmg if moving really fast, regardless of getting hit by bat
 			target.setDeltaMovement(targetvelocity);
 		}
 		
@@ -982,7 +1055,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		compound.putFloat("baseinaccuracy", this.baseInaccuracy);
 		compound.putFloat("throwSpeed", this.throwSpeed);
 		compound.putFloat("batHitSpeed", this.batHitSpeed);
-		compound.putFloat("minDmgSpeed", this.minDmgSpeed);
+		compound.putFloat("minDmgSpeedSqr", this.minDmgSpeedSqr);
 		compound.putFloat("destroyChance", this.destroyChance);
 		compound.putFloat("airResistance", this.airResistance);
 		compound.putBoolean("useOnEntityHit", this.useOnEntityHit);
@@ -1013,7 +1086,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
         this.baseInaccuracy = compound.getFloat("baseinaccuracy");
         this.throwSpeed = compound.getFloat("throwSpeed");
         this.batHitSpeed = compound.getFloat("batHitSpeed");
-        this.minDmgSpeed = compound.getFloat("minDmgSpeed");
+        this.minDmgSpeedSqr = compound.getFloat("minDmgSpeedSqr");
         this.destroyChance = compound.getFloat("destroyChance");
         this.airResistance = compound.getFloat("airResistance");
         this.useOnEntityHit = compound.getBoolean("useOnEntityHit");
@@ -1078,9 +1151,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			} else if (heldItem instanceof TieredItem) {
 				this.destroy(RemovalReason.KILLED);
 				return true;
-//			} else if (heldItem == Items.STICK) {// For debugging
-//				this.tracking = !this.tracking;
-//				return true;
+			} else if (heldItem == Items.STICK) {// For debugging
+				this.tracking = !this.tracking;
+				LOGGER.debug("Now tracking " + this.stringUUID);
+				return true;
 			}
 		}
 
@@ -1161,7 +1235,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			float f = (float) (Math.random() + Math.random() + 1.0D) * 0.15F;
 			float f1 = Mth.sqrt(xd * xd + yd * yd + zd * zd);
 			xd = (xd / f1) * f * 0.4F;
-			yd = (yd / f1) * f * 0.4F;// + 0.1F;
+			yd = (yd / f1) * f * 0.4F + 0.06F;
 			zd = (zd / f1) * f * 0.4F;
 			this.level.addParticle(iparticledata, this.getX(), this.getY(), this.getZ(), xd, yd, zd);
 		}

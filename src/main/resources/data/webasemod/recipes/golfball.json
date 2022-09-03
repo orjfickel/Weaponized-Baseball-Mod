@@ -1,0 +1,21 @@
+
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " # ",
+        "#J#",
+        " # "
+    ],
+    "key": {
+        "#": {
+            "item": "minecraft:quartz"
+        },
+        "J": {
+            "tag": "forge:slimeballs"
+        }
+    },
+    "result": {
+        "item": "webasemod:golfball",
+        "count": 2
+    }
+}

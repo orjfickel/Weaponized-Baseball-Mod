@@ -19,29 +19,33 @@ import net.minecraftforge.registries.RegistryObject;
 public class ModEntityTypes {
 
 	public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.ENTITIES, BaseballMod.MODID);
+	private static final EntityType.Builder<BouncyBallEntity> THROWABLE_ITEM_ENTITY_BUILDER = EntityType.Builder.<BouncyBallEntity>
+		of(BouncyBallEntity::new, MobCategory.MISC).setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6).setTrackingRange(6);
 
 	public static final String THROWABLE_ITEM_NAME = "throwable_item";
 	public static final RegistryObject<EntityType<BouncyBallEntity>> THROWABLE_ITEM_ENTITY =
-			ENTITY_TYPES.register(THROWABLE_ITEM_NAME, () -> EntityType.Builder.<BouncyBallEntity>
-				of(BouncyBallEntity::new, MobCategory.MISC)
+			ENTITY_TYPES.register(THROWABLE_ITEM_NAME, () -> THROWABLE_ITEM_ENTITY_BUILDER
 				.sized(0.34F, 0.34F) // 0.35 means that the bounding box exactly encloses the baseball sprite.
-				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6)
 				.build(new ResourceLocation(BaseballMod.MODID, THROWABLE_ITEM_NAME).toString()));
+	
+	public static final String MEDIUM_THROWABLE_ITEM_NAME = "medium_throwable_item";
+	public static final RegistryObject<EntityType<BouncyBallEntity>> MEDIUM_THROWABLE_ITEM_ENTITY =
+			ENTITY_TYPES.register(MEDIUM_THROWABLE_ITEM_NAME, () -> THROWABLE_ITEM_ENTITY_BUILDER
+				.sized(0.3F, 0.3F)
+				.build(new ResourceLocation(BaseballMod.MODID, MEDIUM_THROWABLE_ITEM_NAME).toString()));
 	
 	public static final String SMALL_THROWABLE_ITEM_NAME = "small_throwable_item";
 	public static final RegistryObject<EntityType<BouncyBallEntity>> SMALL_THROWABLE_ITEM_ENTITY =
-			ENTITY_TYPES.register(SMALL_THROWABLE_ITEM_NAME, () -> EntityType.Builder.<BouncyBallEntity>
-				of(BouncyBallEntity::new, MobCategory.MISC)
+			ENTITY_TYPES.register(SMALL_THROWABLE_ITEM_NAME, () -> THROWABLE_ITEM_ENTITY_BUILDER
 				.sized(0.2F, 0.2F)
-				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6)
 				.build(new ResourceLocation(BaseballMod.MODID, SMALL_THROWABLE_ITEM_NAME).toString()));
 
 	public static final String BOUNCY_FIREBALL_NAME = "bouncy_fireball";
 	public static final RegistryObject<EntityType<BouncyFireBallEntity>> BOUNCY_FIREBALL_ENTITY =
 			ENTITY_TYPES.register(BOUNCY_FIREBALL_NAME, () -> EntityType.Builder.<BouncyFireBallEntity>
 				of(BouncyFireBallEntity::new, MobCategory.MISC)
-				.sized(0.3125F, 0.3125F)
 				.setShouldReceiveVelocityUpdates(true).updateInterval(1).clientTrackingRange(6)
+				.sized(0.3125F, 0.3125F)
 				.build(new ResourceLocation(BaseballMod.MODID, BOUNCY_FIREBALL_NAME).toString()));
 
 	public static final ThrowableProperties BASEBALL_PROPERTIES = new ThrowableProperties.Builder().build();
@@ -73,14 +77,23 @@ public class ModEntityTypes {
 			.baseDmg(0.2F).build();
 
 	public static final ThrowableProperties DIRTBALL_PROPERTIES = new ThrowableProperties.Builder()
-			.bounciness(0.5F).friction(0.6F).throwSpeed(1.0F).baseInaccuracy(1.0F)
+			.bounciness(0.4F).friction(0.5F).throwSpeed(1.0F).baseInaccuracy(1.0F)
 			.batHitDmg(1.2F).batHitSpeed(0.8F).baseDmg(0.1F).build();
 	public static final ThrowableProperties STONEBALL_PROPERTIES = new ThrowableProperties.Builder()
-			.bounciness(0.6F).friction(0.7F).throwSpeed(1.0F).baseInaccuracy(0.9F)
+			.bounciness(0.5F).friction(0.6F).throwSpeed(1.0F).baseInaccuracy(0.9F)
 			.batHitDmg(1.3F).batHitSpeed(0.9F).baseDmg(0.2F).build();
-	public static final ThrowableProperties CORKBALL_PROPERTIES = new ThrowableProperties.Builder()
-			.bounciness(0.7F).friction(0.8F).throwSpeed(1.0F).baseInaccuracy(0.9F)
-			.batHitDmg(1.4F).batHitSpeed(1.0F).baseDmg(0.3F).build();
+	public static final ThrowableProperties CORK_PROPERTIES = new ThrowableProperties.Builder()
+			.mass(0.5F).bounciness(0.6F).friction(0.6F).throwSpeed(1.0F).baseInaccuracy(1.0F)
+			.batHitDmg(1.0F).batHitSpeed(1.2F).baseDmg(0F).build();
+	public static final ThrowableProperties CORE_PROPERTIES = new ThrowableProperties.Builder()
+			.mass(0.75F).bounciness(0.5F).friction(0.6F).throwSpeed(1.0F).baseInaccuracy(0.9F)
+			.batHitDmg(1.2F).batHitSpeed(1.0F).baseDmg(0.1F).build();
+	public static final ThrowableProperties GOLFBALL_PROPERTIES = new ThrowableProperties.Builder()
+			.bounciness(0.6F).friction(0.95F).throwSpeed(1.0F).baseInaccuracy(0.8F)
+			.batHitDmg(2.1F).batHitSpeed(1.4F).baseDmg(0.6F).build();
+	public static final ThrowableProperties SUPER_SLIMEBALL_PROPERTIES = new ThrowableProperties.Builder()
+			.bounciness(1.2F).friction(1.2F).throwSpeed(1.0F).baseInaccuracy(0.9F)
+			.batHitDmg(1.5F).batHitSpeed(1.4F).baseDmg(0.2F).build();
 	
 	public static final String MOCKARROW_NAME = "mock_arrow";
 	public static final RegistryObject<EntityType<MockArrow>> MOCKARROW_ENTITY = ENTITY_TYPES.register(MOCKARROW_NAME, () -> 

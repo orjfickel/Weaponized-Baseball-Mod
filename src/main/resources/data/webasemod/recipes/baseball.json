@@ -5,14 +5,16 @@
             "item": "webasemod:baseball_core"
         },
         {
-            "tag": "forge:string"
+            "item": "webasemod:baseball_core"
         },
         {
             "tag": "forge:leather"
+        },
+        {
+            "tag": "forge:string"
         }
     ],
-    "result":
-    {
+    "result": {
         "item": "webasemod:basic_baseball",
         "count": 2
     }

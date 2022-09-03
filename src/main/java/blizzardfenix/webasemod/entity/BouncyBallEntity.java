@@ -1,7 +1,7 @@
 package blizzardfenix.webasemod.entity;
 
+import blizzardfenix.webasemod.config.ServerConfig;
 import blizzardfenix.webasemod.init.ModItems;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.util.Mth;
@@ -14,14 +14,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ItemSupplier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.PowderSnowBlock;
-import net.minecraft.world.level.block.SlimeBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.IEntityAdditionalSpawnData;
 
@@ -32,6 +28,9 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 	public final double richochetRange = 50D;
 	/** Chance of, if bouncing towards a living entity, bouncing specifically towards the player, no matter how far away */
 	public final float bounceBackChance = 0.0F;//0.5F;
+
+	float fastdroptimer = -10;
+	float starttimer = -10;
 	
 	public BouncyBallEntity(EntityType<? extends BouncyBallEntity> type, Level worldIn) {
 		super(type, worldIn);
@@ -60,59 +59,43 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 	 *  Handle the velocity correction of the block impact
 	 */
 	@Override
-	public boolean onBlockImpact(BlockHitResult result, Vec3 prevvel) {
-		if (!super.onBlockImpact(result, prevvel))
+	public boolean onBlockImpact(BlockHitResult result, Vec3 centerPos, Vec3 prevvel, BlockState hitblockstate, float speedSqr, Vec2 velocityScaling) {
+		if (!super.onBlockImpact(result, centerPos, prevvel, hitblockstate, speedSqr, velocityScaling))
 			return false;
 
-		float speed = (float) prevvel.length();
-		if (speed == 0)
+		if (speedSqr == 0)
 			return false;
 		
-		Vec3 shootvec = Vec3.ZERO;
-		BlockPos blockPos = result.getBlockPos();
-		BlockState blockState = this.level.getBlockState(blockPos);
-		Block block = blockState.getBlock();
-		Material material = blockState.getMaterial();
+//		BlockPos blockPos = result.getBlockPos();
+//		BlockState blockState = this.level.getBlockState(blockPos);
+//		Block block = blockState.getBlock();
+//		Material material = blockState.getMaterial();
 		Direction face = result.getDirection();
 		Axis axis = face.getAxis();
 
-		float thisblockbounce = this.level.getBlockState(this.blockPosition()).getBlock().getJumpFactor();
-		float hitblockbounce = block.getJumpFactor();
-		float blockbounce = thisblockbounce == 1.0F ? hitblockbounce : thisblockbounce;
-		// block.friction has 1 as zero friction and 0 as maximum friction, considering that ice has a friction value higher than regular blocks
-		float blockfric = block.getFriction();
-		
-		if (material == Material.DIRT || material == Material.CLAY) {
-			blockbounce = 0.75F;
-			blockfric = 0.85F;
-		} else if (material == Material.GRASS) {
-			blockbounce = 0.65F;
-			blockfric = 0.75F;
-		} else if (material == Material.SNOW || material == Material.TOP_SNOW || material == Material.SAND
-				|| material == Material.CAKE || material == Material.LEAVES || material == Material.PLANT
-				|| material == Material.REPLACEABLE_PLANT || material == Material.REPLACEABLE_WATER_PLANT
-				|| material == Material.WATER_PLANT) {
-			blockbounce = 0.5F;
-			blockfric = 0.6F;
-		} else if (block instanceof SlimeBlock) {
-			blockbounce = 0.99F;
-			blockfric = 0.75F;
-		} else {
-			blockbounce = 0.8F;
-			blockfric = 0.9F;
-		}
-
-		float totalbounciness = this.bounciness * blockbounce;
-		float totalfriction = friction * blockfric * block.getSpeedFactor();
 		
 		// Clamp velocity in each axis to 0 if it is too small.
 		prevvel = prevvel.multiply(Math.abs(prevvel.x)>1e-4 ? 1 : 0, Math.abs(prevvel.y)>1e-4 ? 1 : 0, Math.abs(prevvel.z)>1e-4 ? 1 : 0);
 
-		// Reduce the elasticity if the ball moves too slow
-		totalbounciness = BallPhysicsHelper.interpolateDown(totalbounciness, speed, idleSpeed);
-		// Increase the (static) friction if the ball moves very slow
-		totalfriction = BallPhysicsHelper.interpolateDown(totalfriction, speed, idleSpeed);
+		float totalbounciness = velocityScaling.x;
+		float totalfriction = velocityScaling.y;
+
+		if (!this.level.isClientSide) {
+			if (speedSqr > BallPhysicsHelper.MAXBALLSPEEDSQR - 2F) {
+				if (this.tickCount > this.fastdroptimer + 5) {
+					this.starttimer = this.tickCount;
+				}
+				if(this.tickCount > this.starttimer + 100) {
+					if (ServerConfig.drop_balls.get())
+						this.dropSelf();
+					else
+						this.destroy(RemovalReason.DISCARDED);
+				}
+				this.fastdroptimer = this.tickCount;
+			}
+		}
 		
+		Vec3 shootvec = Vec3.ZERO;
 		switch(axis) {
 		case X:
 			shootvec = new Vec3(-prevvel.x*totalbounciness, prevvel.y*totalfriction, prevvel.z*totalfriction);
@@ -128,8 +111,8 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 			shootvec = new Vec3(prevvel.x*totalfriction, prevvel.y*totalfriction, -prevvel.z*totalbounciness);
 			break;
 		}
-		
-		bounceBall(shootvec, speed > this.minDmgSpeed ? this.baseInaccuracy*0.7F : 0);
+
+		bounceBall(shootvec, speedSqr > this.minDmgSpeedSqr ? this.baseInaccuracy*0.7F : 0);
 		return true;
 	}
 	
@@ -226,7 +209,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		float entitybounciness = 0.5F;
 		float entityfriction = 0.5F;
 		if (target instanceof IronGolem) {
-			entitybounciness = 0.8F;//TODO: test
+			entitybounciness = 0.8F;
 			entityfriction = 0.9F;
 		} else if (target instanceof Slime) {
 				entitybounciness = 0.99F;
@@ -239,17 +222,20 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 			entitybounciness = this.bounciness * entitybounciness;
 			entityfriction = this.friction * entityfriction;
 		}
+
+		double relativespeedSqr = relativemot.lengthSqr();
+		float relativespeed = (float) Math.sqrt(relativespeedSqr);
 		
-		float relativespeed = (float) relativemot.length();
-		
-		// Reduce the elasticity if the ball moves too slow
-		entitybounciness = BallPhysicsHelper.interpolateDown(entitybounciness, relativespeed, idleSpeed);
+		//  If the bounciness has a regular value, reduce the elasticity if the ball moves too slow
+		entitybounciness = this.bounciness >= 1.0F ? (relativespeedSqr < BallPhysicsHelper.MAXBALLSPEEDSQR ? this.bounciness : 1.0F) : BallPhysicsHelper.interpolateDown(entitybounciness, relativespeed, idleSpeed);
 		// Increase the (static) friction if the ball moves very slow
-		entityfriction = BallPhysicsHelper.interpolateDown(entityfriction, relativespeed, idleSpeed);
+		entityfriction = this.friction >= 1.0F ? (relativespeedSqr < BallPhysicsHelper.MAXBALLSPEEDSQR ? this.friction : 1.0F) : BallPhysicsHelper.interpolateDown(entityfriction, relativespeed, idleSpeed);
 
 		// Calculate the new impulse vector for this ball and the other entity.
 		if (isBouncyBall) {
 			mass2 = btarget.mass;
+		} else if (target instanceof Player && ((Player)target).isCreative()) {
+			mass2 = 10000F;
 		} else { // If the target is not another throwable ball
 			// Estimate the target's mass based on volume
 			mass2 = BallPhysicsHelper.estimateEntityMass(target);
@@ -260,7 +246,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 				.add(newmotXZ.scale(entityfriction/totmass)));
 
 		newimpulse = impulse.scale(mass2);
-		othernewimpulse = impulse.scale(-mass1);
+		othernewimpulse = mass2 < 100F ? impulse.scale(-mass1) : Vec3.ZERO;
 		
 		boolean ignore_y = !isBouncyBall && this.mass <= 1.0F && posvec.y < otherposvec.y;
 		if (this.isOnGround()) {
@@ -367,6 +353,18 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 //	    }
 //		this.shootFromRotation(this.getOwner(), (float) pitchrot, getYRot(), 0.0F, speedscale, this.baseInaccuracy);
 //	}
+
+	/**
+	 *  Scale the remaining part of the velocity according to the block bounciness & friction
+	 */
+	@Override
+	protected Vec3 scaleHitVelocity(Vec3 toTargetVec, Vec3 originalVelocity, double blockfriction, boolean xhit, boolean yhit, boolean zhit) {
+		Vec3 scaledVec = new Vec3(xhit ? toTargetVec.x : toTargetVec.x + (originalVelocity.x - toTargetVec.x)*blockfriction, 
+							 yhit ? toTargetVec.y : toTargetVec.y + (originalVelocity.y - toTargetVec.y)*blockfriction, 
+							 zhit ? toTargetVec.z : toTargetVec.z + (originalVelocity.z - toTargetVec.z)*blockfriction);
+		
+		return scaledVec;
+	}
 	
 	public void hitBall(Vec3 shootvec, float inaccuracy) {
 		this.bounceBall(shootvec, inaccuracy);
@@ -378,7 +376,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 	public void bounceBall(Vec3 shootvec, float inaccuracy) {
 		markHurt();
 		
-	    setDeltaMovement(shootvec.normalize().add(this.random.nextDouble() * 0.0075D * (double)inaccuracy, 
+	    setDeltaMovement(shootvec.normalize().add(this.random.nextGaussian() * 0.0075D * (double)inaccuracy, 
 	    		this.random.nextGaussian() * 0.0075D * (double)inaccuracy, 
 	    		this.random.nextGaussian() * 0.0075D * (double)inaccuracy).scale((double)shootvec.length()));
 	}

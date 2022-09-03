@@ -1,6 +1,5 @@
 package blizzardfenix.webasemod.config;
 
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class ClientConfig {

@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " # ",
+        "#R#",
+        " # "
+    ],
+    "key": {
+        "#": {
+            "item": "minecraft:slime_ball"
+        },
+        "R": {
+            "item": "minecraft:redstone_block"
+        }
+    },
+    "result": {
+        "item": "webasemod:super_slimeball",
+        "count": 1
+    }
+}
