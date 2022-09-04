@@ -371,13 +371,10 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	/** Do entity collision detection with ray traces, then apply movement */
 	protected void fastMove() {
 		Vec3 pos = this.getCenterPositionVec();
+		Vec3 oldposition = this.position();
 		Vec3 mot = this.getDeltaMovement();
-		Vec3 newpos = pos.add(mot);
-		
-		BlockHitResult blockres = this.level.clip(new ClipContext(this.getCenterPositionVec(), newpos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
-		if (blockres.getType() != BlockHitResult.Type.MISS) {
-			newpos = blockres.getLocation();
-		}
+		Vec3 newpos = pos.add(mot);		
+		Vec3 expmovement = mot;
 
 		EntityHitResult entityres = ProjectileUtil.getEntityHitResult(this.level, this, pos, newpos, this.getBoundingBox().expandTowards(mot).inflate(1.0D), (entityIn) -> {
 			return this.canHitEntity(entityIn);
@@ -390,39 +387,39 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			entity = entityres.getEntity();
 			isThrowableBall = entity instanceof ThrowableBallEntity;
 			entityhit = !isThrowableBall || this.level.isClientSide || !this.isRegistered((ThrowableBallEntity) entity);
+			if (entityhit) {
+				expmovement = mot.scale(0.4F); // A very very rough estimation of where along the motion trajectory the ball actually hits the entity
+			}
 		}
-
-		if (entityhit) {
-			if(!this.level.isClientSide) markHurt();
-			Vec3 expmovement = mot.scale(0.4F); // A very very rough estimation of where along the motion trajectory the ball actually hits the entity
-			Vec3 allowedVec = collideBoundingBox(this, expmovement, this.getBoundingBox(), this.level, List.of());
-			this.setPos(this.position().add(allowedVec));
-			this.setDeltaMovement(mot);
-			if (!this.level.isClientSide) {
+		
+		if (!this.tryMove(expmovement)) {
+			// Do a ray trace just in case went so fast we moved through a block
+			BlockHitResult blockres = this.level.clip(new ClipContext(pos, newpos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+			if (blockres.getType() != BlockHitResult.Type.MISS) {
+				if(!this.level.isClientSide) markHurt();
+				newpos = blockres.getLocation();
+			
+	            // Since the ray trace will put the center of the ball as newpos inside of a block, we need to move it back a bit
+	            Vec3 offsetHitPos = null;
+	            switch(blockres.getDirection().getAxis()) {
+	            case X:
+	                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.x))));
+	                break;
+	            case Y:
+	                offsetHitPos = newpos.subtract(mot.scale(this.getBbHeight()/(2*Math.abs(mot.y)))).subtract(0,this.getBbHeight()/2 - 0.01,0);
+	                break;
+	            case Z:
+	                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.z))));
+	                break;
+	            };
+	            
+				this.blockHitMove(blockres, offsetHitPos);
+                this.setPos(offsetHitPos);
+			} else if (entityhit && !this.level.isClientSide) {
+				markHurt();
 				if (isThrowableBall) this.registerHit((ThrowableBallEntity) entity);
 				onEntityImpact(entityres);
 			}
-		} else if (blockres.getType() != BlockHitResult.Type.MISS) {
-			if(!this.level.isClientSide) markHurt();
-            // Since the ray trace will put the center of the ball as newpos inside of a block, we need to move it back a bit
-            Vec3 offsetHitPos = null;
-            switch(blockres.getDirection().getAxis()) {
-            case X:
-                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.x))));
-                break;
-            case Y:
-                offsetHitPos = newpos.subtract(mot.scale(this.getBbHeight()/(2*Math.abs(mot.y)))).subtract(0,this.getBbHeight()/2,0);
-                break;
-            case Z:
-                offsetHitPos = newpos.subtract(mot.scale(this.getBbWidth()/(2*Math.abs(mot.z))));
-                break;
-            };
-            // For a fast ray trace hit we do not need to use BallPhysicsHelper.getVelocityScaling to slide the ball across the block any further than the hit position.
-            this.setPos(offsetHitPos);
-			this.blockHitMove(blockres, offsetHitPos);
-		} else {
-			// If both ray traces missed, do a final collision check with the bounding box
-			this.tryMove(mot);
 		}
 	}
 		
@@ -436,6 +433,9 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 		boolean insideblock = this.level.getBlockState(blockpos).isCollisionShapeFullBlock(this.level, blockpos);
 		
 		if (insideblock) {
+			double speedSqr = velocity.lengthSqr();
+			if (speedSqr > 0.5D*0.5D)
+				this.setDeltaMovement(velocity.scale(0.5D/Math.sqrt(speedSqr)));
 			this.moveTowardsClosestSpace(centerposition.x,centerposition.y,centerposition.z);	
 			this.setPos(this.position().add(this.getDeltaMovement()));
 			return;
@@ -477,7 +477,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 	}
 	
 	/** Try to move and detect if we hit a block based on whether our (expected) movement was blocked */
-	void tryMove(Vec3 expmovement) {
+	boolean tryMove(Vec3 expmovement) {
 		Vec3 allowedmotionvec = collideBoundingBox(this, expmovement, this.getBoundingBox(), this.level, List.of());
 		
 		boolean xblock = (Math.round(expmovement.x*100) != Math.round(allowedmotionvec.x*100)) && expmovement.x != 0;
@@ -495,7 +495,7 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				this.againstZWall = false; // only works if pushed against wall not standing still
 			if (expmovement.y != 0)
 				this.onGround = false;
-			return;
+			return false;
 		}
 		if(!this.level.isClientSide) markHurt();
 		if (expmovement.x != 0)
@@ -518,11 +518,11 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			// If our only velocity is down in the y axis and less than gravity, we don't need to do a block impact either
 			if (expmovement.x == 0 && expmovement.z == 0 && yblock && expmovement.y >= -this.getGravity() && expmovement.y < 0) {
 				this.setDeltaMovement(Vec3.ZERO);
-				return;
+				return false;
 			}
 		}
-
-		hitpos = this.getCenterPositionVec().add(scaledallowedmotionvec);
+        Vec3 centerposition = this.getCenterPositionVec();
+        hitpos = centerposition.add(scaledallowedmotionvec);
 		Vec3 finalMoveVec = Vec3.ZERO;
 		double blockfriction = 1;
 		boolean xhit = false,yhit = false,zhit = false;
@@ -554,14 +554,21 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 			}
 		}
 		
-		if (xhit || yhit || zhit) {
-			finalMoveVec = this.scaleHitVelocity(scaledallowedmotionvec, expmovement, blockfriction, xhit, yhit, zhit);
+		boolean hit = true;
+        if (xhit || yhit || zhit || this.level.clip(new ClipContext(centerposition, centerposition.add(expmovement)
+                .add(new Vec3(  this.getBbWidth()/2 * Math.signum(expmovement.x),
+                                this.getBbHeight()/2 * Math.signum(expmovement.y),
+                                this.getBbWidth()/2 * Math.signum(expmovement.z))),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null)).getType() != Type.MISS) {
+            finalMoveVec = this.scaleHitVelocity(scaledallowedmotionvec, this.getDeltaMovement(), blockfriction, xhit, yhit, zhit);
 			finalMoveVec = collideBoundingBox(this, finalMoveVec, this.getBoundingBox(), this.level, List.of());
 		} else {
 			finalMoveVec = expmovement;
+			hit = false;
 		}
 		
 		this.setPos(this.position().add(finalMoveVec));
+		return hit;
 	}
 	
 	protected Vec2 blockHitMove(BlockHitResult blockres, Vec3 hitPos) {
@@ -863,6 +870,8 @@ public abstract class ThrowableBallEntity extends ThrowableItemProjectile implem
 				this.hurt(DamageSource.CACTUS, 1.0F);
 			} else {
 				hitblockstate.onProjectileHit(this.level, hitblockstate, result, this);
+                //Update the block, to cause falling blocks to drop.
+                hitblockstate.updateShape(result.getDirection(), hitblockstate, level, blockPos, blockPos.relative(result.getDirection()));
 	
 				// Check if we are inside of a button block, in which case use the mock arrow to press the button.
 				BlockState thisblockstate = this.level.getBlockState(new BlockPos(centerPos));

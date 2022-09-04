@@ -33,6 +33,7 @@ import net.minecraft.world.phys.Vec3;
 public class BallPhysicsHelper {
 	protected static Logger LOGGER = LogManager.getLogger(BaseballMod.MODID + " BallPhysicsHelper");
 	public static final float MAXBALLSPEEDSQR = 4F*4F;
+	public static final int MAXBALLSPEEDTIMER = 150;
 	
 	public BallPhysicsHelper() {
 		

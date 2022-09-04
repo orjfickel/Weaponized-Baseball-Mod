@@ -66,10 +66,6 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 		if (speedSqr == 0)
 			return false;
 		
-//		BlockPos blockPos = result.getBlockPos();
-//		BlockState blockState = this.level.getBlockState(blockPos);
-//		Block block = blockState.getBlock();
-//		Material material = blockState.getMaterial();
 		Direction face = result.getDirection();
 		Axis axis = face.getAxis();
 
@@ -85,7 +81,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 				if (this.tickCount > this.fastdroptimer + 5) {
 					this.starttimer = this.tickCount;
 				}
-				if(this.tickCount > this.starttimer + 100) {
+				if(this.tickCount > this.starttimer + BallPhysicsHelper.MAXBALLSPEEDTIMER) {
 					if (ServerConfig.drop_balls.get())
 						this.dropSelf();
 					else
