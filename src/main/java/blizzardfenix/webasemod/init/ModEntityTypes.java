@@ -92,7 +92,7 @@ public class ModEntityTypes {
 			.bounciness(0.6F).friction(0.95F).throwSpeed(1.0F).baseInaccuracy(0.8F)
 			.batHitDmg(2.1F).batHitSpeed(1.4F).baseDmg(0.6F).build();
 	public static final ThrowableProperties SUPER_SLIMEBALL_PROPERTIES = new ThrowableProperties.Builder()
-			.bounciness(1.2F).friction(1.2F).throwSpeed(1.0F).baseInaccuracy(0.9F)
+			.bounciness(1.2F).friction(1.1F).throwSpeed(1.0F).baseInaccuracy(0.9F)
 			.batHitDmg(1.5F).batHitSpeed(1.4F).baseDmg(0.2F).build();
 	
 	public static final String MOCKARROW_NAME = "mock_arrow";

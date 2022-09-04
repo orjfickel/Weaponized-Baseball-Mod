@@ -55,8 +55,7 @@ public class ModEventSubscriber {
     	ItemHelperFunctions.ITEMTAGS.getTag(ItemHelperFunctions.THROWABLEITEMTAG).forEach((item) -> {
 			// Fireballs and eggs already have different dispenser behaviour. Also ignore any throwable items from other mods, as they might have different use functionality defined already.
 			String namespace = ForgeRegistries.ITEMS.getKey(item).getNamespace();
-    		if (item == Items.FIRE_CHARGE || item == Items.EGG || (namespace != "minecraft" && namespace != BaseballMod.MODID)
-    				) 
+            if (item == Items.FIRE_CHARGE || item == Items.EGG || (namespace != "minecraft" && !namespace.equals(BaseballMod.MODID)))
     			return;
     		DispenserBlock.registerBehavior(item, new AbstractProjectileDispenseBehavior() {
     			protected Projectile getProjectile(Level world, Position pos, ItemStack itemstack) {
