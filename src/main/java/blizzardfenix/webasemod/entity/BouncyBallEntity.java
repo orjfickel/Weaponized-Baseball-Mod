@@ -85,7 +85,7 @@ public class BouncyBallEntity extends ThrowableBallEntity implements IEntityAddi
 				if (this.tickCount > this.fastdroptimer + 5) {
 					this.starttimer = this.tickCount;
 				}
-				if(this.tickCount > this.starttimer + 100) {
+				if(this.tickCount > this.starttimer + BallPhysicsHelper.MAXBALLSPEEDTIMER) {
 					if (ServerConfig.drop_balls.get())
 						this.dropSelf();
 					else
